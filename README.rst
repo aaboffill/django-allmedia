@@ -10,6 +10,12 @@ Image thumbnail processing.
 
 Changelog
 =========
+0.3.5b
+-----
+
+Add convert_filename(filename) in utils, that allow remove non ascii characters and
+transform white spaces to underscores
+
 0.3.5
 -----
 

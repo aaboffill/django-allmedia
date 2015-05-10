@@ -12,6 +12,7 @@ from django.db.models.signals import pre_save
 from django.utils.translation import ugettext_lazy as _
 from .settings import MEDIA_LOCATIONS
 from .signals import pre_ajax_file_save
+from .utils import convert_filename
 
 
 class MediaTag(models.Model):
@@ -86,7 +87,7 @@ class Image(Media):
             "model": '%s_%s' % (self.content_object._meta.app_label,
                        self.content_object._meta.object_name.lower()),
             "pk": self.content_object.pk,
-            "filename": filename
+            "filename": convert_filename(filename)
         }
     image = models.ImageField(verbose_name=_('file'), upload_to=image_upload, max_length=255)
 
@@ -103,7 +104,7 @@ class Video(Media):
             "model": '%s_%s' % (self.content_object._meta.app_label,
                        self.content_object._meta.object_name.lower()),
             "pk": self.content_object.pk,
-            "filename": filename
+            "filename": convert_filename(filename)
         }
 
     video = models.FileField(verbose_name=_('video'), upload_to=video_upload, max_length=255)
@@ -186,7 +187,7 @@ class Attachment(models.Model):
             "site": settings.SITE_ID,
             "model": '%s_%s' % (self.content_object._meta.app_label, self.content_object._meta.object_name.lower()),
             "pk": self.content_object.pk,
-            "filename": filename
+            "filename": convert_filename(filename)
         }
 
     content_type = models.ForeignKey(ContentType)
@@ -218,7 +219,7 @@ class AjaxFileUploaded(models.Model):
         return 'site-%s/temp/ajax_files/%s/%s' % (
             settings.SITE_ID,
             '%s_%s' % (self._meta.app_label, self._meta.object_name.lower()),
-            filename
+            convert_filename(filename)
         )
 
     file = models.FileField(verbose_name=_('ajax_file'), max_length=255, upload_to=ajax_file_upload)

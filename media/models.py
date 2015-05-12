@@ -1,6 +1,5 @@
 # coding=utf-8
 import os
-from datetime import datetime
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.contrib.contenttypes import generic
@@ -10,13 +9,15 @@ from django.contrib.sites.managers import CurrentSiteManager
 from django.db import models
 from django.db.models.signals import pre_save
 from django.utils.translation import ugettext_lazy as _
+from media.fields.files import YoutubeFileField
 from .settings import MEDIA_LOCATIONS
 from .signals import pre_ajax_file_save
+from .utils import convert_filename
 
 
 class MediaTag(models.Model):
-    name = models.CharField(max_length=100)
-    site = models.ForeignKey(Site, default=settings.SITE_ID)
+    name = models.CharField(max_length=100, verbose_name=_('name'))
+    site = models.ForeignKey(Site, default=settings.SITE_ID, verbose_name=_('site'))
 
     objects = models.Manager()
     on_site = CurrentSiteManager()
@@ -25,10 +26,26 @@ class MediaTag(models.Model):
         unique_together = ('name', 'site')
 
     def __unicode__(self):
-        return self.name
+        return u"%s" % self.name
+
+
+class MediaManagerMixin(object):
+
+    def for_object(self, obj):
+        return self.filter(content_type__pk=ContentType.objects.get_for_model(obj).pk, object_pk=obj.pk)
+
+
+class MediaManager(MediaManagerMixin, models.Manager):
+    pass
+
+
+class CurrentSiteMediaManager(MediaManagerMixin, CurrentSiteManager):
+    pass
 
 
 class Media(models.Model):
+    media_type = 'all'
+
     # Content-object field
     content_type = models.ForeignKey(ContentType,
                                      verbose_name=_('content type'),
@@ -36,84 +53,89 @@ class Media(models.Model):
     object_pk = models.TextField(_('object ID'))
     content_object = generic.GenericForeignKey(ct_field="content_type", fk_field="object_pk")
 
-    content_type_label = models.CharField(max_length=255, blank=True)
-
-
-    caption = models.CharField(max_length=200)
-    album = models.ForeignKey('MediaAlbum', verbose_name=_('album'), related_name='%(class)s_list', null=True,
+    creator = models.ForeignKey(User, related_name="created_media", verbose_name=_('creator'), null=True, blank=True)
+    caption = models.CharField(max_length=200, verbose_name=_('caption'), null=True, blank=True)
+    album = models.ForeignKey('MediaAlbum', verbose_name=_('album'), related_name='media', null=True,
                               blank=True)
-    is_cover = models.BooleanField(_('album cover'), default=False)
+    private = models.BooleanField(_('private'), default=False)
 
-    private_media = models.BooleanField(_(u"private"), default=False)
-
-    tags = models.ManyToManyField(MediaTag, verbose_name=_(u"tags"), related_name="%(class)s_set", blank=True)
+    tags = models.ManyToManyField(MediaTag, verbose_name=_('tags'), related_name="media", blank=True)
 
     created = models.DateTimeField(_('created'), auto_now_add=True)
     modified = models.DateTimeField(_('modified'), auto_now=True)
 
-    site = models.ForeignKey(Site, default=settings.SITE_ID)
+    site = models.ForeignKey(Site, default=settings.SITE_ID, verbose_name=_('site'))
 
-    objects = models.Manager()
-    on_site = CurrentSiteManager()
+    objects = MediaManager()
+    on_site = CurrentSiteMediaManager()
 
     class Meta:
-        abstract = True
-        ordering = ['caption', ]
+        ordering = ['-created', ]
 
     def __unicode__(self):
+        return u"%s" % self.caption or self.created
+
+    def tag_list(self, sep=","):
+        return sep.join([tag.name for tag in self.tags.all()])
+
+    def description(self):
         return self.caption
 
-    def tag_list(self, sep=", "):
-        return sep.join(self.tags.all())
+    def is_private(self):
+        return self.private
 
     def location_template(self, file_type):
         model = '%s.%s' % (self.content_object._meta.app_label, self.content_object._meta.object_name.lower())
         templates = MEDIA_LOCATIONS.setdefault(file_type, {})
         return templates.get(model, templates.get('default'))
 
+    def upload_to(self, filename):
+        return self.location_template(self.media_type) % {
+            "site": settings.SITE_ID,
+            "model": '%s_%s' % (self.content_object._meta.app_label, self.content_object._meta.object_name.lower()),
+            "pk": self.content_object.pk,
+            "filename": convert_filename(filename)
+        }
 
-def media_pre_save_handler(instance, raw, **kwargs):
-    instance.content_type_label = ".".join(ContentType.objects.get(pk=instance.content_type_id).natural_key())
+    @property
+    def filename(self):
+        return os.path.split(self.file.name)[1]
 
 
 class Image(Media):
     """
-    Represents and image.
+    Represents an image.
     """
-    def image_upload(self, filename):
-        return self.location_template('image') % {
-            "site": settings.SITE_ID,
-            "model": '%s_%s' % (self.content_object._meta.app_label,
-                       self.content_object._meta.object_name.lower()),
-            "pk": self.content_object.pk,
-            "filename": filename
-        }
-    image = models.ImageField(verbose_name=_('file'), upload_to=image_upload, max_length=255)
-
-pre_save.connect(media_pre_save_handler, sender=Image, dispatch_uid='image_pre_save')
+    media_type = 'image'
+    file = models.ImageField(_('file'), upload_to=Media.upload_to, max_length=255)
 
 
 class Video(Media):
     """
     Represents a video.
     """
-    def video_upload(self, filename):
-        return self.location_template('video') % {
-            "site": settings.SITE_ID,
-            "model": '%s_%s' % (self.content_object._meta.app_label,
-                       self.content_object._meta.object_name.lower()),
-            "pk": self.content_object.pk,
-            "filename": filename
-        }
+    media_type = 'video'
+    file = models.FileField(_('file'), upload_to=Media.upload_to, max_length=255)
 
-    video = models.FileField(verbose_name=_('video'), upload_to=video_upload, max_length=255)
 
-    def video_name(self):
-        if self.video.name:
-            return self.video.name.split('/').pop()
-        return ""
+class YoutubeVideo(Media):
 
-pre_save.connect(media_pre_save_handler, sender=Video, dispatch_uid='video_pre_save')
+    media_type = 'youtube'
+    file = YoutubeFileField(
+        _('youtube file'),
+        upload_to=Media.upload_to,
+        max_length=255,
+        privacy=Media.is_private,
+        comment=Media.description,
+        tags=Media.tag_list
+    )
+
+
+class Attachment(Media):
+    """
+    Represents a general attachment.
+    """
+    file = models.FileField(_('file'), upload_to=Media.upload_to, max_length=255)
 
 
 class MediaAlbum(models.Model):
@@ -125,14 +147,16 @@ class MediaAlbum(models.Model):
     content_object = generic.GenericForeignKey(ct_field="content_type", fk_field="object_pk")
 
     name = models.CharField(_('name'), max_length=100, blank=False, null=False)
-    caption = models.CharField(max_length=200, null=True, blank=True)
-    location = models.CharField(max_length=200, null=True, blank=True)
+    caption = models.CharField(_('caption'), max_length=200, null=True, blank=True)
+    location = models.CharField(_('location'), max_length=200, null=True, blank=True)
     owner = models.ForeignKey(User, verbose_name=_('owner'), null=True, blank=True)
-    private_album = models.BooleanField(_(u"private"), default=False)
+    private = models.BooleanField(_('private'), default=False)
+    cover = models.OneToOneField(Media, related_name='cover_of', verbose_name=_('cover'), null=True, blank=True)
+
     created = models.DateTimeField(_('created'), auto_now_add=True)
     modified = models.DateTimeField(_('modified'), auto_now=True)
 
-    site = models.ForeignKey(Site, default=settings.SITE_ID)
+    site = models.ForeignKey(Site, default=settings.SITE_ID, verbose_name=_('site'))
 
     objects = models.Manager()
     on_site = CurrentSiteManager()
@@ -141,85 +165,34 @@ class MediaAlbum(models.Model):
         ordering = ['caption', ]
 
     def __unicode__(self):
-        return self.name
+        return u"%s" % self.name
 
 
-# Set the content to Media with the same MediaAlbum content
+# Set Media's content object after corresponding MediaAlbum's content object
 def set_content_after_album_content(instance, **kwargs):
     if (instance.content_type_id is None) and (instance.object_pk == u''):
         album = MediaAlbum.on_site.get(pk=instance.album_id)
         instance.content_type_id = album.content_type_id
         instance.object_pk = album.object_pk
 
-# Connecting to Image and Video pre_save signal
+# Connecting to Image, Video and Attachment pre_save signal
 pre_save.connect(set_content_after_album_content, sender=Image, dispatch_uid='set_image_content_after_album_content')
 pre_save.connect(set_content_after_album_content, sender=Video, dispatch_uid='set_video_content_after_album_content')
-# Connecting to Image and Video pre_ajax_file_save signal
+pre_save.connect(set_content_after_album_content, sender=Attachment, dispatch_uid='set_attachment_content_after_album_content')
+# Connecting to Image, Video and Attachment pre_ajax_file_save signal
 pre_ajax_file_save.connect(set_content_after_album_content, sender=Image, dispatch_uid='set_ajax_image_content_after_album_content')
 pre_ajax_file_save.connect(set_content_after_album_content, sender=Video, dispatch_uid='set_ajax_video_content_after_album_content')
-
-
-class AttachmentManagerMixin(object):
-    def for_object(self, obj):
-        object_type = ContentType.objects.get_for_model(obj)
-        return self.filter(content_type__pk=object_type.id,
-                           object_id=obj.id)
-
-
-class AttachmentManager(models.Manager, AttachmentManagerMixin):
-    pass
-
-
-class CurrentSiteAttachmentManager(CurrentSiteManager, AttachmentManagerMixin):
-    pass
-
-
-class Attachment(models.Model):
-
-    def location_template(self):
-        model = '%s.%s' % (self.content_object._meta.app_label, self.content_object._meta.object_name.lower())
-        templates = MEDIA_LOCATIONS.setdefault('docs', {})
-        return templates.get(model, templates.get('default'))
-
-    def attachment_upload(self, filename):
-        return self.location_template() % {
-            "site": settings.SITE_ID,
-            "model": '%s_%s' % (self.content_object._meta.app_label, self.content_object._meta.object_name.lower()),
-            "pk": self.content_object.pk,
-            "filename": filename
-        }
-
-    content_type = models.ForeignKey(ContentType)
-    object_id = models.PositiveIntegerField()
-    content_object = generic.GenericForeignKey('content_type', 'object_id')
-    creator = models.ForeignKey(User, related_name="created_attachments", verbose_name=_('creator'))
-    attachment_file = models.FileField(_('attachment'), max_length=255, upload_to=attachment_upload)
-    created = models.DateTimeField(_('created'), auto_now_add=True)
-    modified = models.DateTimeField(_('modified'), auto_now=True)
-
-    site = models.ForeignKey(Site, default=settings.SITE_ID)
-
-    objects = AttachmentManager()
-    on_site = CurrentSiteAttachmentManager()
-
-    class Meta:
-        ordering = ['-created']
-
-    def __unicode__(self):
-        return '%s attached %s' % (self.creator.username, self.attachment_file.name)
-
-    @property
-    def filename(self):
-        return os.path.split(self.attachment_file.name)[1]
+pre_ajax_file_save.connect(set_content_after_album_content, sender=Attachment, dispatch_uid='set_ajax_attachment_content_after_album_content')
 
 
 class AjaxFileUploaded(models.Model):
-    def ajax_file_upload(self, filename):
+
+    def upload_to(self, filename):
         return 'site-%s/temp/ajax_files/%s/%s' % (
             settings.SITE_ID,
             '%s_%s' % (self._meta.app_label, self._meta.object_name.lower()),
             filename
         )
 
-    file = models.FileField(verbose_name=_('ajax_file'), max_length=255, upload_to=ajax_file_upload)
-    date = models.DateTimeField(auto_now=True)
+    file = models.FileField(verbose_name=_('ajax file'), max_length=255, upload_to=upload_to)
+    date = models.DateTimeField(auto_now=True, verbose_name=_('date'))

@@ -1,10 +1,9 @@
 # coding=utf-8
-import json
-from django.http import HttpResponse
 from django.utils.encoding import force_text
-from django.views.generic import View
+from django.views.generic import View, TemplateView
 from django.utils.translation import ugettext_lazy as _
 from .forms import AjaxFileUploadedForm
+from .models import YoutubeVideo
 from .mixins import JSONResponseMixin
 
 
@@ -38,3 +37,32 @@ class HandleAjaxFileUploadedView(JSONResponseMixin, View):
                 'result': False,
                 'failedMsgs': {1: force_text(_(u"A problem has occurred while trying to save the uploaded file."))}
             })
+
+
+class HandleYoutubeProcessing(JSONResponseMixin, View):
+
+    def get(self, request, *args, **kwargs):
+        video_id = kwargs['video_id']
+        try:
+            video = YoutubeVideo.objects.get(pk=video_id)
+            processing_progress = video.file.processing_progress
+
+            return self.render_to_response({
+                'result': True,
+                'processing_progress': processing_progress
+            })
+
+        except YoutubeVideo.DoesNotExist:
+            return self.render_to_response({
+                'result': False,
+                'failedMsgs': {1: force_text(_(u"The video specified with id:%s does not exist.") % video_id)}
+            })
+
+
+class YoutubeUploadProcess(TemplateView):
+
+    def get_context_data(self, **kwargs):
+        context = super(YoutubeUploadProcess, self).get_context_data(**kwargs)
+        context.update({'youtube_upload_status': self.request.session.get('youtube_upload_status', None)})
+        return context
+

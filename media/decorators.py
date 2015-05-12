@@ -1,8 +1,8 @@
 # coding=utf-8
 import os
-from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 from django.forms import ValidationError
+from .fields.files import YoutubeFileField
 from .models import AjaxFileUploaded
 from .signals import pre_ajax_file_save
 
@@ -12,7 +12,7 @@ def ajax_file_upload(form_file_field_name="file", model_file_field_name=None, co
     def decorator(cls):
         from django import forms
         if not issubclass(cls, forms.ModelForm):
-            raise ImproperlyConfigured("ajax_file_upload decorator is only suitable for ModelForm descendants.")
+            raise ImproperlyConfigured("Ajax_file_upload decorator is only suitable for ModelForm descendants.")
 
         setattr(cls, 'file_field_required', cls.base_fields.get(form_file_field_name).required)
 
@@ -91,6 +91,42 @@ def ajax_file_upload(form_file_field_name="file", model_file_field_name=None, co
                 return normal_save_method(self, commit, **kwargs)
 
         setattr(cls, 'save', save)
+
+        return cls
+
+    return decorator
+
+
+def show_youtube_upload_process(fields=[], model=None, save_method=None):
+
+    def decorator(cls):
+        from django.views.generic import CreateView, UpdateView
+        from django.db.models import Model
+        if (not model or not save_method) and not issubclass(cls, (CreateView, UpdateView)):
+            raise ImproperlyConfigured("If the model or save_method args are not specified, "
+                                       "then show_youtube_upload_process decorator is only suitable "
+                                       "for CreateView or UpdateView descendants.")
+
+        if model and not issubclass(model, Model):
+            raise ImproperlyConfigured("model arg must be a Model descendants.")
+
+        # Save method
+        normal_save_method = getattr(cls, save_method or 'form_valid')
+
+        def method(self, *args, **kwargs):
+            current_model = model or getattr(self, 'model')
+            all_youtube_fields = len(fields) == 0
+            # finding youtube fields
+            for field in current_model._meta.fields:
+                if not isinstance(field, YoutubeFileField):
+                    continue
+
+                if all_youtube_fields or field.name in fields:
+                    setattr(field.storage, 'request', getattr(self, 'request', None))
+
+            return normal_save_method(self, *args, **kwargs)
+
+        setattr(cls, save_method or 'form_valid', method)
 
         return cls
 

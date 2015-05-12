@@ -1,0 +1,7 @@
+{% if youtube_upload_status %}
+    <label>{{ youtube_upload_status.title }}</label> <br/>
+    {% if youtube_upload_status.resumable_progress_MB and youtube_upload_status.total_size_MB %}
+        <p>{{ youtube_upload_status.resumable_progress_MB }}MB / {{ youtube_upload_status.total_size_MB }}MB</p>
+    {% endif %}
+    <progress value="{{ youtube_upload_status.resumable_progress }}" max="{{ youtube_upload_status.total_size }}"></progress>
+{% endif %}

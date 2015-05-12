@@ -9,19 +9,13 @@ class Migration(SchemaMigration):
 
     def forwards(self, orm):
 
-        # Changing field 'Image.image'
-        db.alter_column(u'media_image', 'image', self.gf('django.db.models.fields.files.ImageField')(max_length=255))
-
-        # Changing field 'Video.video'
-        db.alter_column(u'media_video', 'video', self.gf('django.db.models.fields.files.FileField')(max_length=255))
+        # Changing field 'YoutubeVideo.file'
+        db.alter_column(u'media_youtubevideo', 'file', self.gf('media.fields.files.YoutubeFileField')(max_length=255))
 
     def backwards(self, orm):
 
-        # Changing field 'Image.image'
-        db.alter_column(u'media_image', 'image', self.gf('django.db.models.fields.files.ImageField')(max_length=100))
-
-        # Changing field 'Video.video'
-        db.alter_column(u'media_video', 'video', self.gf('django.db.models.fields.files.FileField')(max_length=100))
+        # Changing field 'YoutubeVideo.file'
+        db.alter_column(u'media_youtubevideo', 'file', self.gf('django.db.models.fields.files.FileField')(max_length=255))
 
     models = {
         u'auth.group': {
@@ -60,36 +54,41 @@ class Migration(SchemaMigration):
             'model': ('django.db.models.fields.CharField', [], {'max_length': '100'}),
             'name': ('django.db.models.fields.CharField', [], {'max_length': '100'})
         },
+        u'media.ajaxfileuploaded': {
+            'Meta': {'object_name': 'AjaxFileUploaded'},
+            'date': ('django.db.models.fields.DateTimeField', [], {'auto_now': 'True', 'blank': 'True'}),
+            'file': ('django.db.models.fields.files.FileField', [], {'max_length': '255'}),
+            u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'})
+        },
         u'media.attachment': {
-            'Meta': {'ordering': "['-created']", 'object_name': 'Attachment'},
-            'attachment_file': ('django.db.models.fields.files.FileField', [], {'max_length': '255'}),
-            'content_type': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['contenttypes.ContentType']"}),
-            'created': ('django.db.models.fields.DateTimeField', [], {'auto_now_add': 'True', 'blank': 'True'}),
-            'creator': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'created_attachments'", 'to': u"orm['auth.User']"}),
-            u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'modified': ('django.db.models.fields.DateTimeField', [], {'auto_now': 'True', 'blank': 'True'}),
-            'object_id': ('django.db.models.fields.PositiveIntegerField', [], {}),
-            'site': ('django.db.models.fields.related.ForeignKey', [], {'default': '1', 'to': u"orm['sites.Site']"})
+            'Meta': {'ordering': "['-created']", 'object_name': 'Attachment', '_ormbases': [u'media.Media']},
+            'file': ('django.db.models.fields.files.FileField', [], {'max_length': '255'}),
+            u'media_ptr': ('django.db.models.fields.related.OneToOneField', [], {'to': u"orm['media.Media']", 'unique': 'True', 'primary_key': 'True'})
         },
         u'media.image': {
-            'Meta': {'ordering': "['caption']", 'object_name': 'Image'},
-            'album': ('django.db.models.fields.related.ForeignKey', [], {'blank': 'True', 'related_name': "'image_list'", 'null': 'True', 'to': u"orm['media.MediaAlbum']"}),
-            'caption': ('django.db.models.fields.CharField', [], {'max_length': '200'}),
-            'content_type': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'content_type_set_for_image'", 'to': u"orm['contenttypes.ContentType']"}),
+            'Meta': {'ordering': "['-created']", 'object_name': 'Image', '_ormbases': [u'media.Media']},
+            'file': ('django.db.models.fields.files.ImageField', [], {'max_length': '255'}),
+            u'media_ptr': ('django.db.models.fields.related.OneToOneField', [], {'to': u"orm['media.Media']", 'unique': 'True', 'primary_key': 'True'})
+        },
+        u'media.media': {
+            'Meta': {'ordering': "['-created']", 'object_name': 'Media'},
+            'album': ('django.db.models.fields.related.ForeignKey', [], {'blank': 'True', 'related_name': "'media'", 'null': 'True', 'to': u"orm['media.MediaAlbum']"}),
+            'caption': ('django.db.models.fields.CharField', [], {'max_length': '200', 'null': 'True', 'blank': 'True'}),
+            'content_type': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'content_type_set_for_media'", 'to': u"orm['contenttypes.ContentType']"}),
             'created': ('django.db.models.fields.DateTimeField', [], {'auto_now_add': 'True', 'blank': 'True'}),
+            'creator': ('django.db.models.fields.related.ForeignKey', [], {'blank': 'True', 'related_name': "'created_media'", 'null': 'True', 'to': u"orm['auth.User']"}),
             u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'image': ('django.db.models.fields.files.ImageField', [], {'max_length': '255'}),
-            'is_cover': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
             'modified': ('django.db.models.fields.DateTimeField', [], {'auto_now': 'True', 'blank': 'True'}),
             'object_pk': ('django.db.models.fields.TextField', [], {}),
-            'private_media': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
+            'private': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
             'site': ('django.db.models.fields.related.ForeignKey', [], {'default': '1', 'to': u"orm['sites.Site']"}),
-            'tags': ('django.db.models.fields.related.ManyToManyField', [], {'blank': 'True', 'related_name': "'image_set'", 'null': 'True', 'symmetrical': 'False', 'to': u"orm['media.MediaTag']"})
+            'tags': ('django.db.models.fields.related.ManyToManyField', [], {'symmetrical': 'False', 'related_name': "'media'", 'blank': 'True', 'to': u"orm['media.MediaTag']"})
         },
         u'media.mediaalbum': {
             'Meta': {'ordering': "['caption']", 'object_name': 'MediaAlbum'},
             'caption': ('django.db.models.fields.CharField', [], {'max_length': '200', 'null': 'True', 'blank': 'True'}),
             'content_type': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'content_type_set_for_mediaalbum'", 'to': u"orm['contenttypes.ContentType']"}),
+            'cover': ('django.db.models.fields.related.OneToOneField', [], {'blank': 'True', 'related_name': "'cover_of'", 'unique': 'True', 'null': 'True', 'to': u"orm['media.Media']"}),
             'created': ('django.db.models.fields.DateTimeField', [], {'auto_now_add': 'True', 'blank': 'True'}),
             u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'location': ('django.db.models.fields.CharField', [], {'max_length': '200', 'null': 'True', 'blank': 'True'}),
@@ -97,7 +96,7 @@ class Migration(SchemaMigration):
             'name': ('django.db.models.fields.CharField', [], {'max_length': '100'}),
             'object_pk': ('django.db.models.fields.TextField', [], {}),
             'owner': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['auth.User']", 'null': 'True', 'blank': 'True'}),
-            'private_album': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
+            'private': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
             'site': ('django.db.models.fields.related.ForeignKey', [], {'default': '1', 'to': u"orm['sites.Site']"})
         },
         u'media.mediatag': {
@@ -107,19 +106,14 @@ class Migration(SchemaMigration):
             'site': ('django.db.models.fields.related.ForeignKey', [], {'default': '1', 'to': u"orm['sites.Site']"})
         },
         u'media.video': {
-            'Meta': {'ordering': "['caption']", 'object_name': 'Video'},
-            'album': ('django.db.models.fields.related.ForeignKey', [], {'blank': 'True', 'related_name': "'video_list'", 'null': 'True', 'to': u"orm['media.MediaAlbum']"}),
-            'caption': ('django.db.models.fields.CharField', [], {'max_length': '200'}),
-            'content_type': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'content_type_set_for_video'", 'to': u"orm['contenttypes.ContentType']"}),
-            'created': ('django.db.models.fields.DateTimeField', [], {'auto_now_add': 'True', 'blank': 'True'}),
-            u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'is_cover': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
-            'modified': ('django.db.models.fields.DateTimeField', [], {'auto_now': 'True', 'blank': 'True'}),
-            'object_pk': ('django.db.models.fields.TextField', [], {}),
-            'private_media': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
-            'site': ('django.db.models.fields.related.ForeignKey', [], {'default': '1', 'to': u"orm['sites.Site']"}),
-            'tags': ('django.db.models.fields.related.ManyToManyField', [], {'blank': 'True', 'related_name': "'video_set'", 'null': 'True', 'symmetrical': 'False', 'to': u"orm['media.MediaTag']"}),
-            'video': ('django.db.models.fields.files.FileField', [], {'max_length': '255'})
+            'Meta': {'ordering': "['-created']", 'object_name': 'Video', '_ormbases': [u'media.Media']},
+            'file': ('django.db.models.fields.files.FileField', [], {'max_length': '255'}),
+            u'media_ptr': ('django.db.models.fields.related.OneToOneField', [], {'to': u"orm['media.Media']", 'unique': 'True', 'primary_key': 'True'})
+        },
+        u'media.youtubevideo': {
+            'Meta': {'ordering': "['-created']", 'object_name': 'YoutubeVideo', '_ormbases': [u'media.Media']},
+            'file': ('media.fields.files.YoutubeFileField', [], {'max_length': '255'}),
+            u'media_ptr': ('django.db.models.fields.related.OneToOneField', [], {'to': u"orm['media.Media']", 'unique': 'True', 'primary_key': 'True'})
         },
         u'sites.site': {
             'Meta': {'ordering': "(u'domain',)", 'object_name': 'Site', 'db_table': "u'django_site'"},

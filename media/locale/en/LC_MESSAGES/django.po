@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: django-allmedia\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2014-09-25 21:03-0500\n"
+"POT-Creation-Date: 2015-05-12 11:29-0500\n"
 "PO-Revision-Date: 2014-09-25 21:03-0500\n"
 "Last-Translator: Susel Ruiz <suselrd@gmail.com>\n"
 "Language-Team: English\n"
@@ -16,66 +16,105 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: forms.py:16
-msgid "Private"
-msgstr ""
-
-#: forms.py:139
-msgid "Upload attachment"
-msgstr ""
-
-#: models.py:31 models.py:102
-msgid "content type"
-msgstr ""
-
-#: models.py:33 models.py:104
-msgid "object ID"
-msgstr ""
-
-#: models.py:37
-msgid "album"
-msgstr ""
-
-#: models.py:39
-msgid "album cover"
-msgstr ""
-
-#: models.py:41 models.py:111
-msgid "private"
-msgstr ""
-
-#: models.py:43
-msgid "tags"
-msgstr ""
-
-#: models.py:46 models.py:112 models.py:168
-msgid "created"
-msgstr ""
-
-#: models.py:47 models.py:113 models.py:169
-msgid "modified"
-msgstr ""
-
-#: models.py:76
-msgid "file"
-msgstr ""
-
-#: models.py:91
-msgid "video"
-msgstr ""
-
-#: models.py:107
+#: models.py:19 models.py:149
 msgid "name"
 msgstr ""
 
-#: models.py:110
-msgid "owner"
+#: models.py:20 models.py:67 models.py:159
+msgid "site"
 msgstr ""
 
-#: models.py:166
+#: models.py:51 models.py:144
+msgid "content type"
+msgstr ""
+
+#: models.py:53 models.py:146
+msgid "object ID"
+msgstr ""
+
+#: models.py:56
 msgid "creator"
 msgstr ""
 
-#: models.py:167
-msgid "attachment"
+#: models.py:57 models.py:150
+msgid "caption"
+msgstr ""
+
+#: models.py:58
+msgid "album"
+msgstr ""
+
+#: models.py:60 models.py:153
+msgid "private"
+msgstr ""
+
+#: models.py:62
+msgid "tags"
+msgstr ""
+
+#: models.py:64 models.py:156
+msgid "created"
+msgstr ""
+
+#: models.py:65 models.py:157
+msgid "modified"
+msgstr ""
+
+#: models.py:110 models.py:118 models.py:138
+msgid "file"
+msgstr ""
+
+#: models.py:125
+msgid "youtube file"
+msgstr ""
+
+#: models.py:151
+msgid "location"
+msgstr ""
+
+#: models.py:152
+msgid "owner"
+msgstr ""
+
+#: models.py:154
+msgid "cover"
+msgstr ""
+
+#: models.py:197
+msgid "ajax file"
+msgstr ""
+
+#: models.py:198
+msgid "date"
+msgstr ""
+
+#: validators.py:20
+#, python-format
+msgid "Please keep file size under %s. Current file size %s."
+msgstr ""
+
+#: validators.py:22
+#, python-format
+msgid "File type %s is not supported."
+msgstr ""
+
+#: views.py:38
+msgid "A problem has occurred while trying to save the uploaded file."
+msgstr ""
+
+#: views.py:58
+#, python-format
+msgid "The video specified with id:%s does not exist."
+msgstr ""
+
+#: fields/files.py:39 storage/youtube.py:334
+msgid "Seconds"
+msgstr ""
+
+#: storage/youtube.py:345
+msgid "Minutes"
+msgstr ""
+
+#: storage/youtube.py:357
+msgid "Unknown time"
 msgstr ""

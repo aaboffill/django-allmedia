@@ -42,7 +42,7 @@ $(function() {
                     // getting file mime type
                     var mimeType = element.data('contentvalidation');
                     // append the mime type to the form data
-                    if (mimeType != 'undefined') formData.append('content', mimeType);
+                    if (typeof mimeType != 'undefined') formData.append('content', mimeType);
 
                     ajaxRequest = $.ajax({
                         url: url,
@@ -90,7 +90,11 @@ $(function() {
                                     }));
                                 } else {
                                     $.each(response['failedMsgs'], function(i, msg) {
-                                      $.addNotification($.TOP_LAYOUT, $.ERROR, msg);
+                                        if (typeof $.addNotification != 'undefined') {
+                                            $.addNotification($.TOP_LAYOUT, $.ERROR, msg);
+                                        } else {
+                                            alert(msg);
+                                        }
                                     });
                                     // Throw a non success event to add another behavior
                                     element.trigger($.Event('nonSuccess.media.ajaxUpload', {

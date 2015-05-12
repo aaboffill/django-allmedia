@@ -1,0 +1,16 @@
+{% extends 'test/test.html' %}
+
+{% load static %}
+
+{% block content %}
+    <h1>{{ label }}</h1>
+    <h4>{{ media.file.status }}</h4>
+
+    {% include "media/youtube/display_video.html" with media=media only %}
+
+    </br><a href="{% url 'list_youtubevideo' %}">Youtube Video List</a>
+{% endblock %}
+
+{% block include_scripts %}
+    <script src="{% static 'media/js/youtube/display_video.js' %}"></script>
+{% endblock %}

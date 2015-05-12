@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+
+{% load i18n %}
+{% load static %}
+
+<!-- GENERAL BLOCK -->
+{% block base_template %}
+
+    <!-- IN THIS BLOCK WE CAN OVERRIDE THE HTML CLASS ATTRIBUTES.
+        EXAMPLE: <html class="animations fluid top-full menuh-top sticky-top sidebar sidebar-full sidebar-collapsible
+                        sidebar-width-mini sticky-sidebar sidebar-hat">
+    -->
+    <html xmlns="http://www.w3.org/1999/html">
+    <!-- IN THIS AREA WE CAN OVERRIDE (TITLE, META, STYLES AND SCRIPTS) INSIDE TO THE HEAD TAG. -->
+    {% block head %}
+        <head>
+            {% block meta %}
+                <meta http-equiv="X-UA-Compatible" content="IE=Edge">
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            {% endblock %}
+
+            <title>Media Test</title>
+
+            {% block head_styles %}
+                <link rel="stylesheet" href="{% static "test/css/fileinput.css" %}" />
+
+                {% block include_css %}{% endblock %}
+
+            {% endblock %}
+        </head>
+    {% endblock %}
+
+
+    <body>
+        <!-- PAGE BODY -->
+        {% block body %}
+
+            {% block content %}
+                <ul>
+                    <li><h4><a href="#">Test Media Images (Not Implemented)</a></h4></li>
+                    <li><h4><a href="{% url "list_video" %}">Test Media Videos</a></h4></li>
+                    <li><h4><a href="{% url "list_youtubevideo" %}">Test Media Youtube Videos</a></h4></li>
+                    <li><h4><a href="#">Test Media Attachment (Not Implemented)</a></h4></li>
+                </ul>
+            {% endblock %}
+
+            </br> <a href="{% url 'test' %}">Home</a>
+
+            <!-- AREA TO DEFINE THE FOOTER SCRIPTS -->
+            {% block footer_scripts %}
+                <script src="{% static 'test/js/jquery.min.js' %}"></script>
+                <script src="{% static 'test/js/jquery.cookie.js' %}"></script>
+                <script src="{% static 'test/js/bootstrap.min.js' %}"></script>
+                <script src="{% static 'test/js/fileinput.js' %}"></script>
+                <script src="{% static 'test/js/ajax.js' %}"></script>
+                <script src="{% static 'media/js/ajax_upload.js' %}"></script>
+
+                {% block include_scripts %}{% endblock %}
+
+            {% endblock %}
+
+        {% endblock %}
+    </body>
+
+</html>
+
+{% endblock %}

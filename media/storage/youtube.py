@@ -1,6 +1,7 @@
 # coding=utf-8
 from django.core.files.storage import Storage as DjangoStorage
 from django.core.files import File
+from django.core.files.uploadedfile import TemporaryUploadedFile, InMemoryUploadedFile
 from django.utils.translation import ugettext
 from django.conf import settings
 import httplib
@@ -119,7 +120,8 @@ def resumable_upload(title, insert_request, size, request=None):
             status, response = insert_request.next_chunk()
             if response and 'id' in response:
                 logger.info("Video id '%s' was successfully uploaded." % response['id'])
-                del request.session['youtube_upload_status']
+                if request:
+                    del request.session['youtube_upload_status']
             elif not response and status:
                 if UPLOAD_CHUNK_SIZE != -1 and request:
                     youtube_upload_status = {
@@ -208,12 +210,33 @@ class FileYoutubeStorage(DjangoStorage):
             )
         )
 
+        if isinstance(content.file, TemporaryUploadedFile):
+            media = http.MediaFileUpload(
+                content.file.file.name,
+                mimetype=content.file.content_type,
+                chunksize=UPLOAD_CHUNK_SIZE,
+                resumable=True
+            )
+        elif isinstance(content.file, InMemoryUploadedFile):
+            media = http.MediaIoBaseUpload(
+                content.file.file,
+                mimetype=content.file.content_type,
+                chunksize=UPLOAD_CHUNK_SIZE,
+                resumable=True
+            )
+        elif isinstance(content, File):
+            media = http.MediaFileUpload(
+                content.file.name,
+                chunksize=UPLOAD_CHUNK_SIZE,
+                resumable=True
+            )
+
         # Call the API's videos.insert method to create and upload the video.
         insert_request = youtube.videos().insert(
             part=",".join(body.keys()),
             # fields='items(id,snippet,status,fileDetails(fileSize))',
             body=body,
-            media_body=http.MediaFileUpload(content.file.name, chunksize=UPLOAD_CHUNK_SIZE, resumable=True)
+            media_body=media
         )
 
         return resumable_upload(title or name, insert_request, content.size, getattr(self, 'request', None))
@@ -257,7 +280,7 @@ class FileYoutubeStorage(DjangoStorage):
         if tags:
             video_snippet["tags"] = tags
 
-        if privacy:
+        if not privacy is None:
             if not isinstance(privacy, bool):
                 privacy = DEFAULT_PRIVACY_STATUS
             elif privacy:

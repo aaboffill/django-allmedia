@@ -2,7 +2,9 @@
 import os
 from django.core.exceptions import ImproperlyConfigured
 from django.forms import ValidationError
+from django.db.models.signals import pre_save, post_delete
 from .fields.files import YoutubeFileField
+from . import remove_old_files, remove_files
 from .models import AjaxFileUploaded
 from .signals import pre_ajax_file_save
 
@@ -16,11 +18,46 @@ def ajax_file_upload(form_file_field_name="file", model_file_field_name=None, co
 
         setattr(cls, 'file_field_required', cls.base_fields.get(form_file_field_name).required)
 
+        class Meta:
+            proxy = True
+
+        def model_save(self, force_insert=False, force_update=False, using=None, update_fields=None):
+            # finds if self has a temp_file attribute
+            if getattr(self, "temp_file", None):
+                temp_file = getattr(self, "temp_file")
+                # connect with pre_ajax_file_save signal
+                pre_ajax_file_save.send(self.__class__, instance=self)
+                # create the new field field instance
+                getattr(self, model_file_field_name if model_file_field_name else form_file_field_name).save(
+                    os.path.basename(temp_file.file.path),
+                    temp_file.file.file,
+                    False
+                )
+
+            super(ProxyModel, self).save(force_insert, force_update, using, update_fields)
+
+        ProxyModel = type(
+            "%sAjaxProxy" % cls.Meta.model.__name__,
+            (cls.Meta.model,),
+            {
+                '__module__': cls.Meta.model.__module__,
+                'Meta': Meta,
+                'save': model_save
+            }
+        )
+
+        pre_save.connect(remove_old_files, sender=ProxyModel)
+        post_delete.connect(remove_files, sender=ProxyModel)
+
         # Init method
         normal_init_method = getattr(cls, '__init__')
 
         def __init__(self, *args, **kwargs):
             normal_init_method(self, *args, **kwargs)
+
+            if not self.instance.pk is None:
+                self.instance = ProxyModel.objects.get(pk=self.instance.pk)
+
             # create a temporal field to save the ajax file uploaded id
             self.fields['temp_file_id'] = forms.IntegerField(
                 required=False,
@@ -45,25 +82,9 @@ def ajax_file_upload(form_file_field_name="file", model_file_field_name=None, co
 
             setattr(cls, 'clean', clean)
 
-        # model save method
-        normal_model_save_method = getattr(cls.Meta.model, "save")
-
-        def model_save(self, force_insert=False, force_update=False, using=None, update_fields=None):
-            # finds if self has a temp_file attribute
-            if getattr(self, "temp_file", None):
-                temp_file = getattr(self, "temp_file")
-                # connect with pre_ajax_file_save signal
-                pre_ajax_file_save.send(self.__class__, instance=self)
-                # create the new field field instance
-                getattr(self, model_file_field_name if model_file_field_name else form_file_field_name).save(
-                    os.path.basename(temp_file.file.path),
-                    temp_file.file.file,
-                    False
-                )
-
-            normal_model_save_method(self, force_insert, force_update, using, update_fields)
-
-        setattr(cls.Meta.model, 'save', model_save)
+        # model
+        setattr(cls.Meta, 'model', ProxyModel)
+        setattr(cls._meta, 'model', ProxyModel)
 
         # save method
         normal_save_method = getattr(cls, 'save')
@@ -97,7 +118,9 @@ def ajax_file_upload(form_file_field_name="file", model_file_field_name=None, co
     return decorator
 
 
-def show_youtube_upload_process(fields=[], model=None, save_method=None):
+def show_youtube_upload_process(fields=None, model=None, save_method=None):
+    if not fields:
+        fields = []
 
     def decorator(cls):
         from django.views.generic import CreateView, UpdateView

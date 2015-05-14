@@ -8,6 +8,9 @@ from django.contrib.gis import admin
 from media.forms import VideoAjaxUploadForm, YoutubeVideoAjaxUploadForm
 from media.models import Video, YoutubeVideo
 from .views import ListMediaItem, CreateMedia, DetailMedia, UpdateMedia
+from django.contrib import admin
+
+admin.autodiscover()
 
 urlpatterns = patterns('',
     # ADMIN URLS

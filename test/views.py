@@ -43,6 +43,7 @@ class CreateMedia(CreateView):
         return HttpResponseRedirect(self.get_success_url())
 
 
+@show_youtube_upload_process()
 class UpdateMedia(UpdateView):
 
     def get_context_data(self, **kwargs):

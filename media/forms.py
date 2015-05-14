@@ -65,6 +65,17 @@ class MediaForm(forms.ModelForm):
             return MediaTag.on_site.get_or_create(name=tag)[0].pk
 
 
+class ObjectMediaForm(MediaForm):
+
+    class Meta(MediaForm.Meta):
+        fields = ('content_type', 'object_pk', 'caption', 'private', 'file', 'tags', 'creator')
+
+
+class MediaAdminForm(forms.ModelForm):
+    pass
+
+
+# IMAGE FORMS
 class ImageForm(MediaForm):
     """
     Form to add an image
@@ -78,6 +89,24 @@ class ImageAjaxUploadForm(ImageForm):
     pass
 
 
+class ObjectImageForm(ObjectMediaForm):
+
+    class Meta(ObjectMediaForm.Meta):
+        model = Image
+
+
+@ajax_file_upload(form_file_field_name="file", content_type="image")
+class ObjectImageAjaxUploadForm(ObjectImageForm):
+    pass
+
+
+class ImageAdminForm(MediaAdminForm):
+
+    class Meta:
+        model = Image
+
+
+# VIDEO FORMS
 class VideoForm(MediaForm):
     """
     Form to add a video
@@ -92,6 +121,24 @@ class VideoAjaxUploadForm(VideoForm):
     pass
 
 
+class ObjectVideoForm(ObjectMediaForm):
+
+    class Meta(ObjectMediaForm.Meta):
+        model = Video
+
+
+@ajax_file_upload(form_file_field_name="file", content_type="video")
+class ObjectVideoAjaxUploadForm(ObjectVideoForm):
+    pass
+
+
+class VideoAdminForm(MediaAdminForm):
+
+    class Meta:
+        model = Video
+
+
+# YOUTUBE VIDEO FORMS
 class YoutubeVideoForm(MediaForm):
     """
     Form to add a video
@@ -110,6 +157,32 @@ class YoutubeVideoAjaxUploadForm(YoutubeVideoForm):
     pass
 
 
+class ObjectYoutubeVideoForm(ObjectMediaForm):
+
+    class Meta(ObjectMediaForm.Meta):
+        model = YoutubeVideo
+
+    def save(self, commit=True):
+        self.instance.file.field.tags = [tag.name for tag in self.cleaned_data['tags']]
+        return super(ObjectYoutubeVideoForm, self).save(commit)
+
+
+@ajax_file_upload(form_file_field_name="file", content_type="video")
+class ObjectYoutubeVideoAjaxUploadForm(ObjectYoutubeVideoForm):
+    pass
+
+
+class YoutubeVideoAdminForm(MediaAdminForm):
+
+    class Meta:
+        model = YoutubeVideo
+
+    def save(self, commit=True):
+        self.instance.file.field.tags = [tag.name for tag in self.cleaned_data['tags']]
+        return super(YoutubeVideoAdminForm, self).save(commit)
+
+
+# ATTACHMENT FORMS
 class AttachmentForm(MediaForm):
 
     class Meta(MediaForm.Meta):
@@ -119,6 +192,23 @@ class AttachmentForm(MediaForm):
 @ajax_file_upload(form_file_field_name="file", content_type="all")
 class AttachmentAjaxUploadForm(AttachmentForm):
     pass
+
+
+class ObjectAttachmentForm(ObjectMediaForm):
+
+    class Meta(ObjectMediaForm.Meta):
+        model = Attachment
+
+
+@ajax_file_upload(form_file_field_name="file", content_type="all")
+class ObjectAttachmentAjaxUploadForm(ObjectAttachmentForm):
+    pass
+
+
+class AttachmentAdminForm(MediaAdminForm):
+
+    class Meta:
+        model = Attachment
 
 
 class TagForm(forms.ModelForm):

@@ -10,6 +10,12 @@ Image thumbnail processing.
 
 Changelog
 =========
+1.0.1
+-----
+
+Testing and fixing problems using youtube django storage backend, this time through django administration.
+
+
 1.0.0
 -----
 
@@ -184,7 +190,7 @@ Usage
           By default is 22, you can read more about youtube video categories(https://developers.google.com/youtube/v3/docs/videoCategories).
 
         + ``YOUTUBE_BASE_URL`` : Define the youtube url that will be embedded in the page (optional).
-          By default is ``http://www.youtube.com/embed/%s``, but you can override ir and add params un the youtube url.
+          By default is ``http://www.youtube.com/embed/%s``, but you can override it and add params un the youtube url.
 
           Example: ``http://www.youtube.com/embed/%s?autoplay=1&controls=1&loop=0``
 

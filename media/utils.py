@@ -5,8 +5,8 @@ import unicodedata
 
 from django.utils import six
 
-from .settings import MEDIA_IMAGE_EXTENSION, MEDIA_IMAGE_FORMAT, MEDIA_IMAGE_QUALITY
-from .settings import MEDIA_NORMALIZE_FILENAME, MEDIA_CONVERT_FILENAME
+from .settings import (MEDIA_IMAGE_EXTENSION, MEDIA_IMAGE_FORMAT, MEDIA_IMAGE_QUALITY,
+                       MEDIA_NORMALIZE_FILENAME, MEDIA_CONVERT_FILENAME)
 
 
 def thumbnail_path(path, size, method):
@@ -57,7 +57,6 @@ def convert_filename(value):
     """
     Convert Filename. # from django-filebrowser
     """
-
     if MEDIA_NORMALIZE_FILENAME:
         chunks = value.split(os.extsep)
         normalized = []

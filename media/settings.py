@@ -8,14 +8,17 @@ MEDIA_LOCATIONS = getattr(settings, 'MEDIA_LOCATIONS', {
     "video": {
         "default": "site-%(site)s/videos/%(model)s/%(pk)s/%(filename)s"
     },
-    "docs": {
+    "youtube": {
+        "default": "site-%(site)s/youtube/%(model)s/%(pk)s/%(filename)s"
+    },
+    "all": {
         "default": "site-%(site)s/attachments/%(model)s/%(pk)s/%(filename)s"
     }
 })
 
-#to remove non ascii characters set MEDIA_NORMALIZE_FILENAME = True
+# to remove non ascii characters set MEDIA_NORMALIZE_FILENAME = True
 MEDIA_NORMALIZE_FILENAME = getattr(settings, 'MEDIA_NORMALIZE_FILENAME', False)
-#to transform white spaces to underscores set MEDIA_CONVERT_FILENAME = True
+# to transform white spaces to underscores set MEDIA_CONVERT_FILENAME = True
 MEDIA_CONVERT_FILENAME = getattr(settings, 'MEDIA_CONVERT_FILENAME', False)
 
 MEDIA_IMAGE_FORMAT = getattr(settings, 'MEDIA_IMAGE_FORMAT', 'JPEG')

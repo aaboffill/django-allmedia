@@ -1,28 +1,12 @@
 # coding=utf-8
-# TODO the media form must check that only one media item is set as the cover for an specific album
 import json
 from django import forms
-from django.contrib.contenttypes.models import ContentType
 from django.forms.util import ErrorList
 from django.utils.datastructures import MultiValueDictKeyError
-from django.utils.translation import ugettext_lazy as _
-from django.contrib.auth.models import User
-from django.core.exceptions import ValidationError
 from . import settings
 from .validators import FileFieldValidator
 from .decorators import ajax_file_upload
-from .models import Media, MediaAlbum, Image, Video, MediaTag, Attachment, AjaxFileUploaded
-
-
-class MediaForm(forms.ModelForm):
-    """
-    Form to add a media object
-    """
-    is_private = forms.NullBooleanField(widget=forms.CheckboxInput(), label=_(u"Private"))
-
-    class Meta:
-        model = Media
-        fields = ('caption', 'private_media', 'tags',)
+from .models import MediaAlbum, Image, Video, MediaTag, Attachment, AjaxFileUploaded, YoutubeVideo
 
 
 class MediaAlbumForm(forms.ModelForm):
@@ -34,28 +18,25 @@ class MediaAlbumForm(forms.ModelForm):
         fields = ('name', 'location', 'private_album')
 
 
-class ImageForm(forms.ModelForm):
+class MediaForm(forms.ModelForm):
     """
-    Form to add an image
+    Form to add a media object
     """
-    default_tags = forms.CharField(
-        required=False,
-        widget=forms.HiddenInput()
-    )
+    default_tags = forms.CharField(required=False, widget=forms.HiddenInput())
+
+    class Meta:
+        widgets = {
+            'tags': forms.TextInput(),
+            'creator': forms.HiddenInput(),
+        }
 
     def __init__(self, data=None, files=None, auto_id='id_%s', prefix=None, initial=None, error_class=ErrorList,
                  label_suffix=None, empty_permitted=False, instance=None):
-        super(ImageForm, self).__init__(data, files, auto_id, prefix, initial, error_class, label_suffix,
+        super(MediaForm, self).__init__(data, files, auto_id, prefix, initial, error_class, label_suffix,
                                         empty_permitted, instance)
         if instance is not None:
             self.fields['default_tags'].initial = json.dumps([{'id': obj['id'], 'text': obj['name']}
                                                               for obj in instance.tags.values('id', 'name')])
-        self.fields['image'].widget.template_with_initial = '%(input)s'
-
-    class Meta:
-        model = Image
-        fields = ('caption', 'private_media', 'image', 'tags')
-        widgets = {'tags': forms.TextInput()}
 
     def full_clean(self):
         """
@@ -70,7 +51,7 @@ class ImageForm(forms.ModelForm):
                     self.data[field_name] = [self._get_or_create_tag(tag) for tag in data]
             except MultiValueDictKeyError:
                 pass
-        return super(ImageForm, self).full_clean()
+        return super(MediaForm, self).full_clean()
 
     def _get_or_create_tag(self, tag):
         """
@@ -80,6 +61,31 @@ class ImageForm(forms.ModelForm):
             return int(tag)
         except ValueError as e:
             return MediaTag.on_site.get_or_create(name=tag)[0].pk
+
+
+class ObjectMediaForm(MediaForm):
+    pass
+
+
+class MediaAdminForm(forms.ModelForm):
+    pass
+
+
+# IMAGE FORMS
+class ImageForm(MediaForm):
+    """
+    Form to add an image
+    """
+    class Meta(MediaForm.Meta):
+        model = Image
+        fields = ('caption', 'private_media', 'image', 'tags')
+
+    def __init__(self, data=None, files=None, auto_id='id_%s', prefix=None, initial=None, error_class=ErrorList,
+                 label_suffix=None, empty_permitted=False, instance=None):
+        super(ImageForm, self).__init__(data, files, auto_id, prefix, initial, error_class, label_suffix,
+                                        empty_permitted, instance)
+
+        self.fields['image'].widget.template_with_initial = '%(input)s'
 
 
 @ajax_file_upload(form_file_field_name="image", content_type="image")
@@ -87,58 +93,182 @@ class ImageAjaxUploadForm(ImageForm):
     pass
 
 
-class VideoForm(forms.ModelForm):
+class ObjectImageForm(ObjectMediaForm):
+
+    class Meta(ObjectMediaForm.Meta):
+        model = Image
+        fields = ('content_type', 'object_pk', 'caption', 'private_media', 'image', 'tags')
+
+    def __init__(self, data=None, files=None, auto_id='id_%s', prefix=None, initial=None, error_class=ErrorList,
+                 label_suffix=None, empty_permitted=False, instance=None):
+        super(ObjectImageForm, self).__init__(data, files, auto_id, prefix, initial, error_class, label_suffix,
+                                              empty_permitted, instance)
+
+        self.fields['image'].widget.template_with_initial = '%(input)s'
+
+
+@ajax_file_upload(form_file_field_name="image", content_type="image")
+class ObjectImageAjaxUploadForm(ObjectImageForm):
+    pass
+
+
+class ImageAdminForm(MediaAdminForm):
+
+    class Meta:
+        model = Image
+
+
+# VIDEO FORMS
+class VideoForm(MediaForm):
     """
     Form to add a video
     """
-    default_tags = forms.CharField(
-        required=False,
-        widget=forms.HiddenInput()
-    )
 
-    class Meta:
+    class Meta(MediaForm.Meta):
         model = Video
-        fields = ('caption', 'private_media', 'tags', 'video',)
-        widgets = {'tags': forms.TextInput()}
+        fields = ('caption', 'private_media', 'video', 'tags')
 
     def __init__(self, data=None, files=None, auto_id='id_%s', prefix=None, initial=None, error_class=ErrorList,
                  label_suffix=None, empty_permitted=False, instance=None):
         super(VideoForm, self).__init__(data, files, auto_id, prefix, initial, error_class, label_suffix,
                                         empty_permitted, instance)
-        if instance is not None:
-            self.fields['default_tags'].initial = json.dumps([{'id': obj['id'], 'text': obj['name']}
-                                                              for obj in instance.tags.values('id', 'name')])
 
         self.fields['video'].widget.template_with_initial = '%(input)s'
-
-    def full_clean(self):
-        """
-        For bound forms, convert tags data to list (if not list yet)
-        """
-        if self.is_bound:
-            field_name = self.add_prefix('tags')
-            try:
-                data = self.data[field_name]
-                if not isinstance(data, list) and data:
-                    data = data.split(',')
-                    self.data[field_name] = [self._get_or_create_tag(tag) for tag in data]
-            except MultiValueDictKeyError:
-                pass
-        return super(VideoForm, self).full_clean()
-
-    def _get_or_create_tag(self, tag):
-        """
-        Returns id of an existent or new-created tag
-        """
-        try:
-            return int(tag)
-        except ValueError as e:
-            return MediaTag.on_site.get_or_create(name=tag)[0].pk
 
 
 @ajax_file_upload(form_file_field_name="video", content_type="video")
 class VideoAjaxUploadForm(VideoForm):
     pass
+
+
+class ObjectVideoForm(ObjectMediaForm):
+
+    class Meta(ObjectMediaForm.Meta):
+        model = Video
+        fields = ('content_type', 'object_pk', 'caption', 'private_media', 'video', 'tags')
+
+    def __init__(self, data=None, files=None, auto_id='id_%s', prefix=None, initial=None, error_class=ErrorList,
+                 label_suffix=None, empty_permitted=False, instance=None):
+        super(ObjectVideoForm, self).__init__(data, files, auto_id, prefix, initial, error_class, label_suffix,
+                                              empty_permitted, instance)
+
+        self.fields['video'].widget.template_with_initial = '%(input)s'
+
+
+@ajax_file_upload(form_file_field_name="video", content_type="video")
+class ObjectVideoAjaxUploadForm(ObjectVideoForm):
+    pass
+
+
+class VideoAdminForm(MediaAdminForm):
+
+    class Meta:
+        model = Video
+
+
+# YOUTUBE VIDEO FORMS
+class YoutubeVideoForm(MediaForm):
+    """
+    Form to add a video
+    """
+
+    class Meta(MediaForm.Meta):
+        model = YoutubeVideo
+        fields = ('caption', 'private_media', 'video', 'tags')
+
+    def __init__(self, data=None, files=None, auto_id='id_%s', prefix=None, initial=None, error_class=ErrorList,
+                 label_suffix=None, empty_permitted=False, instance=None):
+        super(YoutubeVideoForm, self).__init__(data, files, auto_id, prefix, initial, error_class, label_suffix,
+                                               empty_permitted, instance)
+
+        self.fields['video'].widget.template_with_initial = '%(input)s'
+
+    def save(self, commit=True):
+        self.instance.video.field.tags = [tag.name for tag in self.cleaned_data['tags']]
+        return super(YoutubeVideoForm, self).save(commit)
+
+
+@ajax_file_upload(form_file_field_name="video", content_type="video")
+class YoutubeVideoAjaxUploadForm(YoutubeVideoForm):
+    pass
+
+
+class ObjectYoutubeVideoForm(ObjectMediaForm):
+
+    class Meta(ObjectMediaForm.Meta):
+        model = YoutubeVideo
+        fields = ('content_type', 'object_pk', 'caption', 'private_media', 'video', 'tags')
+
+    def __init__(self, data=None, files=None, auto_id='id_%s', prefix=None, initial=None, error_class=ErrorList,
+                 label_suffix=None, empty_permitted=False, instance=None):
+        super(ObjectYoutubeVideoForm, self).__init__(data, files, auto_id, prefix, initial, error_class, label_suffix,
+                                                     empty_permitted, instance)
+
+        self.fields['video'].widget.template_with_initial = '%(input)s'
+
+    def save(self, commit=True):
+        self.instance.video.field.tags = [tag.name for tag in self.cleaned_data['tags']]
+        return super(ObjectYoutubeVideoForm, self).save(commit)
+
+
+@ajax_file_upload(form_file_field_name="video", content_type="video")
+class ObjectYoutubeVideoAjaxUploadForm(ObjectYoutubeVideoForm):
+    pass
+
+
+class YoutubeVideoAdminForm(MediaAdminForm):
+
+    class Meta:
+        model = YoutubeVideo
+
+    def save(self, commit=True):
+        self.instance.video.field.tags = [tag.name for tag in self.cleaned_data['tags']]
+        return super(YoutubeVideoAdminForm, self).save(commit)
+
+
+# ATTACHMENT FORMS
+class AttachmentForm(MediaForm):
+
+    class Meta(MediaForm.Meta):
+        model = Attachment
+        fields = ('attachment_file', 'creator')
+
+    def __init__(self, data=None, files=None, auto_id='id_%s', prefix=None, initial=None, error_class=ErrorList,
+                 label_suffix=None, empty_permitted=False, instance=None):
+        super(AttachmentForm, self).__init__(data, files, auto_id, prefix, initial, error_class, label_suffix,
+                                             empty_permitted, instance)
+
+        self.fields['attachment_file'].widget.template_with_initial = '%(input)s'
+
+
+@ajax_file_upload(form_file_field_name="attachment_file", content_type="all")
+class AttachmentAjaxUploadForm(AttachmentForm):
+    pass
+
+
+class ObjectAttachmentForm(ObjectMediaForm):
+
+    class Meta(ObjectMediaForm.Meta):
+        model = Attachment
+        fields = ('content_type', 'object_id', 'attachment_file', 'creator')
+
+    def __init__(self, data=None, files=None, auto_id='id_%s', prefix=None, initial=None, error_class=ErrorList,
+                 label_suffix=None, empty_permitted=False, instance=None):
+        super(ObjectAttachmentForm, self).__init__(data, files, auto_id, prefix, initial, error_class, label_suffix,
+                                                   empty_permitted, instance)
+
+        self.fields['attachment_file'].widget.template_with_initial = '%(input)s'
+
+
+@ajax_file_upload(form_file_field_name="attachment_file", content_type="all")
+class ObjectAttachmentAjaxUploadForm(ObjectAttachmentForm):
+    pass
+
+
+class AttachmentAdminForm(MediaAdminForm):
+
+    class Meta:
+        model = Attachment
 
 
 class TagForm(forms.ModelForm):
@@ -148,46 +278,6 @@ class TagForm(forms.ModelForm):
     class Meta:
         model = MediaTag
         fields = ('name',)
-
-
-class AttachmentForm(forms.ModelForm):
-    attachment_file = forms.FileField(label=_('Upload attachment'))
-
-    class Meta:
-        model = Attachment
-        fields = ('attachment_file',)
-
-    def save(self, request, obj, *args, **kwargs):
-        self.instance.creator = request.user
-        self.instance.content_type = ContentType.objects.get_for_model(obj)
-        self.instance.object_id = obj.id
-        super(AttachmentForm, self).save(*args, **kwargs)
-
-
-@ajax_file_upload(form_file_field_name="attachment_file", content_type="all")
-class AttachmentAjaxUploadForm(forms.ModelForm):
-    attachment_file = forms.FileField(label=_('Upload attachment'))
-    creator = forms.IntegerField(widget=forms.HiddenInput())
-
-    class Meta:
-        model = Attachment
-        fields = ('attachment_file',)
-
-    def clean(self):
-        cleaned_data = super(AttachmentAjaxUploadForm, self).clean()
-        try:
-            creator_id = cleaned_data.get('creator', None)
-            self.instance_creator = User.objects.get(pk=creator_id)
-        except User.DoesNotExist:
-            raise ValidationError(_(u"No se ha encontrado Usuario con el identificador '%(id)'.") % {'id': creator_id})
-
-        return cleaned_data
-
-    def save(self, commit=True):
-        object = super(AttachmentAjaxUploadForm, self).save(commit=False)
-        object.creator = self.instance_creator
-        # this object is saved in false and returned in order to add the content_type in the view
-        return object
 
 
 class AjaxFileUploadedForm(forms.ModelForm):

@@ -1,6 +1,5 @@
 # coding=utf-8
 import os
-from datetime import datetime
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.contrib.contenttypes import generic
@@ -10,14 +9,15 @@ from django.contrib.sites.managers import CurrentSiteManager
 from django.db import models
 from django.db.models.signals import pre_save
 from django.utils.translation import ugettext_lazy as _
+from media.fields.files import YoutubeFileField
 from .settings import MEDIA_LOCATIONS
 from .signals import pre_ajax_file_save
 from .utils import convert_filename
 
 
 class MediaTag(models.Model):
-    name = models.CharField(max_length=100)
-    site = models.ForeignKey(Site, default=settings.SITE_ID)
+    name = models.CharField(max_length=100, verbose_name=_('name'))
+    site = models.ForeignKey(Site, default=settings.SITE_ID, verbose_name=_('site'))
 
     objects = models.Manager()
     on_site = CurrentSiteManager()
@@ -26,7 +26,7 @@ class MediaTag(models.Model):
         unique_together = ('name', 'site')
 
     def __unicode__(self):
-        return self.name
+        return u"%s" % self.name
 
 
 class Media(models.Model):
@@ -64,8 +64,14 @@ class Media(models.Model):
     def __unicode__(self):
         return self.caption
 
-    def tag_list(self, sep=", "):
-        return sep.join(self.tags.all())
+    def tag_list(self, sep=","):
+        return sep.join([tag.name for tag in self.tags.all()])
+
+    def description(self):
+        return self.caption
+
+    def is_private(self):
+        return self.private_media
 
     def location_template(self, file_type):
         model = '%s.%s' % (self.content_object._meta.app_label, self.content_object._meta.object_name.lower())
@@ -115,6 +121,27 @@ class Video(Media):
         return ""
 
 pre_save.connect(media_pre_save_handler, sender=Video, dispatch_uid='video_pre_save')
+
+
+class YoutubeVideo(Media):
+
+    def video_upload(self, filename):
+        return self.location_template('video') % {
+            "site": settings.SITE_ID,
+            "model": '%s_%s' % (self.content_object._meta.app_label,
+                       self.content_object._meta.object_name.lower()),
+            "pk": self.content_object.pk,
+            "filename": convert_filename(filename)
+        }
+
+    video = YoutubeFileField(
+        _('youtube file'),
+        upload_to=video_upload,
+        max_length=255,
+        privacy=Media.is_private,
+        comment=Media.description,
+        tags=Media.tag_list
+    )
 
 
 class MediaAlbum(models.Model):
@@ -222,5 +249,5 @@ class AjaxFileUploaded(models.Model):
             convert_filename(filename)
         )
 
-    file = models.FileField(verbose_name=_('ajax_file'), max_length=255, upload_to=ajax_file_upload)
+    file = models.FileField(verbose_name=_('ajax file'), max_length=255, upload_to=ajax_file_upload)
     date = models.DateTimeField(auto_now=True)

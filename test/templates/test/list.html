@@ -1,0 +1,20 @@
+{% extends 'test/test.html' %}
+
+{% block content %}
+    <h1>{{ label }}</h1>
+
+    <ul>
+        {% for item in media %}
+            <li>
+                <form method="post" action="{% url delete_url pk=item.pk %}">
+                    {% csrf_token %}
+                    <a href="{% url detail_url pk=item.pk %}">{{ item }}</a> /
+                    <a href="{% url update_url pk=item.pk %}">update</a> /
+                    <button type="submit">delete</button>
+                </form>
+            </li>
+        {% endfor %}
+    </ul>
+
+    <a href="{% url create_url %}">New</a>
+{% endblock %}

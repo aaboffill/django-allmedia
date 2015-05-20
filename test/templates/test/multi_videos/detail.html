@@ -1,0 +1,19 @@
+{% extends 'test/test.html' %}
+
+{% load static %}
+
+{% block content %}
+    <h1>All Youtube Videos</h1>
+
+    {% for video in youtube_videos %}
+        {% include "media/youtube/display_video.html" with file=video.file model_pk=video.pk only %}
+        <br/>
+        <p>--------------------------------------------------------------------</p>
+    {% endfor %}
+
+    </br><a href="{% url 'list_youtubevideo' %}">Youtube Video List</a>
+{% endblock %}
+
+{% block include_scripts %}
+    <script src="{% static 'media/js/youtube/display_video.js' %}"></script>
+{% endblock %}

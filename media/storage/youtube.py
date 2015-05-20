@@ -345,19 +345,23 @@ class FileYoutubeStorage(DjangoStorage):
         return name['status'], name['status']
 
     def processing_progress(self, name):
-        youtube_id = json.loads(name)['id']
+        name = json.loads(name)
+        youtube_id = name['id']
         youtube = get_authenticated_service()
 
         video_response = youtube.videos().list(
             id=youtube_id,
-            part='processingDetails',
-            fields='items(id,processingDetails(processingProgress))'
+            part='processingDetails,status',
+            fields='items(id,processingDetails(processingProgress),status(uploadStatus))'
         ).execute()
 
         unit = ugettext(u"Seconds")
         try:
             if 'processingProgress' in video_response['items'][0]['processingDetails']:
                 processing_progress = video_response['items'][0]['processingDetails']['processingProgress']
+
+                status = video_response['items'][0]['status']['uploadStatus']
+
                 parts_total = int(processing_progress['partsTotal'])
                 parts_processed = int(processing_progress['partsProcessed'])
                 time_left_ms = int(processing_progress['timeLeftMs'])
@@ -371,7 +375,8 @@ class FileYoutubeStorage(DjangoStorage):
                     'time_left_ms': "%s %s" % (time_left, unit),
                     'parts_processed': parts_processed,
                     'parts_total': parts_total,
-                    'percent': percent
+                    'percent': percent,
+                    'status': status
                 }
         except KeyError:
             pass
@@ -380,5 +385,6 @@ class FileYoutubeStorage(DjangoStorage):
             'time_left_ms': ugettext(u"Unknown time"),
             'parts_processed': 0,
             'parts_total': 1000,
-            'percent': 0
+            'percent': 0,
+            'status': name['status']
         }

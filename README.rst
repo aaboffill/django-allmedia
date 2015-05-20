@@ -10,6 +10,12 @@ Image thumbnail processing.
 
 Changelog
 =========
+1.0.2
+-----
+
+Added support for several videos processed simultaneously.
+
+
 1.0.1
 -----
 
@@ -219,7 +225,7 @@ Usage
         + If you wish show the upload progress to the user, you need to include the ``show_youtube_upload_process`` decorator to the corresponding view,
           and to include the ``show_upload_process.js`` in the template.
 
-         The ``show_youtube_upload_process`` decorator have the following args:
+        The ``show_youtube_upload_process`` decorator have the following args:
 
           - ``fields`` : Specify the youtube fields that you wish to show uploading progress for, if you don't specify any field, progress for all youtube
             fields will be shown.
@@ -230,6 +236,13 @@ Usage
           - ``save_method`` : Specify the method where the model instance will be saved, if don't specify it, the decorator will assume that the view
             is a subclass of ``CreateView`` or ``UpdateView`` and that the method is the ``form_valid`` method of the view.
 
+        To ensure that the upload progress is shown successfully, you must to add the class ``youtube-files`` to the corresponding HTML form, also you need to specify
+          the following form data:
+
+          - ``data-youtube-process-url`` : Define the url that will be requested to retrieve the progress information.
+
+          - ``data-youtube-process-parent`` : Specify the HTML container where will be append the youtube processing information.
+
 
         + When you upload a video to youtube, youtube begins processing the file, this process could take several minutes. During this
          period, if you access the video for displaying, it won't be reproduced. In order to inform to the user of the progress of this process, you can use the
@@ -238,19 +251,23 @@ Usage
          You can optionally overwrite the ``display_video.html`` template. By default, this template show the progress using an HTML progress bar,
          but you can use other progress bar implementation like bootstrap progress bar if you respect the following principles:
 
-            In the youtube embedded ``iframe``, you need to define some data attributes to guarantee a success progress display:
+            In the youtube embedded ``iframe``, you need to add a class named ``embed-youtube-video`` and to define some data attributes to guarantee a success
+            progress display:
 
             - ``data-while-processing`` : Set to "hide" or "show" whether you want to hide the youtube player while the video is still in process or not.
               Example: (data-while-processing="hide" or data-while-processing="show")
 
             - ``data-url`` : Define the url that will be requested to retrieve the progress information.
 
+            - ``data-progress-container`` : Represents the HTML container of the progress HTML information.
+
             - ``data-processing-percent`` : Specify the percent value container.
             - ``data-processing-time-left`` : Specify the remaining time value container.
             - ``data-processing-processed`` : Specify the processed value container.
             - ``data-processing-total`` : Specify the total value container.
+            - ``data-video-status`` : Specify the status value container.
 
-            The last 4 data attributes, need to match the following format:
+            The last 5 data attributes, need to match the following format:
 
               'html_selector:(func|attr)->name_of_func_or_attr' where:
                ``func`` represent a method of the HTML component that will be called to set the value, as (.value(), text(), ...)
@@ -261,3 +278,4 @@ Usage
               data-processing-time-left="#youtube-processing-time-left:func->text"
               data-processing-processed="#youtube-processing-progress:attr->value"
               data-processing-total="#youtube-processing-progress:attr->max"
+              data-video-status="#video-status:func->text"

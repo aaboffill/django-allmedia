@@ -4,10 +4,10 @@ from django.conf.urls import patterns, url, include
 from django.conf.urls.static import static
 from django.core.urlresolvers import reverse_lazy
 from django.views.generic import TemplateView, DeleteView
-from django.contrib.gis import admin
 from media.forms import VideoAjaxUploadForm, YoutubeVideoAjaxUploadForm
 from media.models import Video, YoutubeVideo
-from .views import ListMediaItem, CreateMedia, DetailMedia, UpdateMedia
+from .views import (ListMediaItem, CreateMedia, DetailMedia,
+                    UpdateMedia, CreateMultipleYoutubeVideos, ShowMultipleYoutubeVideos)
 from django.contrib import admin
 
 admin.autodiscover()
@@ -125,6 +125,24 @@ urlpatterns = patterns('',
         name="delete_youtubevideo"
     ),
 
+###########################################################
+    url(
+        r'^test/youtubevideo/multiple/create/$',
+        CreateMultipleYoutubeVideos.as_view(
+            template_name='test/multi_videos/create_update.html',
+            model=YoutubeVideo,
+            form_class=YoutubeVideoAjaxUploadForm,
+            success_url=reverse_lazy('list_youtubevideo')
+        ),
+        name="create_youtubevideo_multi"
+    ),
+    url(
+        r'^test/youtubevideo/multiple/detail/$',
+        ShowMultipleYoutubeVideos.as_view(
+            template_name='test/multi_videos/detail.html',
+        ),
+        name="detail_youtubevideo_multi"
+    ),
 )
 
 # FOR UPLOADED MEDIA

@@ -1,0 +1,59 @@
+{% extends 'test/test.html' %}
+{% load widget_tweaks static %}
+
+{% block content %}
+    <form method="post" enctype="multipart/form-data"
+          class="youtube-files" data-youtube-process-url="{% url 'youtube_upload_process' %}"
+          data-youtube-process-parent="#youtube-upload-process-parent">
+
+        {% csrf_token %}
+        {% include "test/_error_list.html" with errors=formset.non_form_errors %}
+
+        {{ formset.management_form }}
+
+        {% for form in formset %}
+            <label>caption</label>
+            {% render_field form.caption %}
+            {% include "test/_error_list.html" with errors=form.caption.errors %} </br></br>
+
+            <label>private</label>
+            {% render_field form.private %}
+            {% include "test/_error_list.html" with errors=form.private.errors %} </br></br>
+
+            <label>tags</label>
+            {% render_field form.tags %}
+            {% render_field form.default_tags %}
+            {% include "test/_error_list.html" with errors=form.tags.errors %} </br></br>
+
+            <div class="file-container">
+                <div class="fileinput simple-ajax-upload fileinput-{% if form.instance.pk and form.instance.file.url %}exists{% else %}new{% endif %}" data-provides="fileinput">
+                    {% if form.instance.pk and form.instance.file.url %}<input type="hidden" value="" name="">{% endif %}
+                    <div>
+                        <div><span class="fileinput-preview">{% if form.instance.pk and form.instance.file.url %}{{ form.instance.file.url }}{% endif %}</span></div>
+                        <span class="input-group-btn">
+                            <span class="btn-file">
+                                <span class="fileinput-new">Select File</span>
+                                <span class="fileinput-exists">Change File</span>
+                                {% url "ajax_upload_file" as ajax_upload_file_url %}
+                                {% render_field form.file data-url=ajax_upload_file_url data-progresscontainer=".file-container" %}
+                                {% render_field form.temp_file_id %}
+                            </span> </br>
+    {#                        <a href="#" class="fileinput-exists" data-dismiss="fileinput">Clean or Change</a>#}
+                        </span>
+                    </div>
+                </div>
+                {% include "test/_error_list.html" with errors=form.file.errors %}
+            </div>
+
+            <p>-------------------------------------------------------------------------------------------------------</p> <br/>
+        {% endfor %}
+
+        <button type="submit">submit</button> / <a href="{% url 'list_youtubevideo' %}">list videos</a>
+
+        <div id="youtube-upload-process-parent"></div>
+    </form>
+{% endblock %}
+
+{% block include_scripts %}
+    <script src="{% static 'media/js/youtube/show_upload_process.js' %}"></script>
+{% endblock %}

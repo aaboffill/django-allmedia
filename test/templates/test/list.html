@@ -16,5 +16,7 @@
         {% endfor %}
     </ul>
 
-    <a href="{% url create_url %}">New</a>
+    <a href="{% url detail_multi_url %}">View All</a> <br/><br/>
+    <a href="{% url create_url %}">New Item</a> <br/>
+    <a href="{% url create_multi_url %}">Multiple Items</a>
 {% endblock %}

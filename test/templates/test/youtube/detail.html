@@ -4,9 +4,8 @@
 
 {% block content %}
     <h1>{{ label }}</h1>
-    <h4>{{ media.file.status }}</h4>
 
-    {% include "media/youtube/display_video.html" with media=media only %}
+    {% include "media/youtube/display_video.html" with file=media.file model_pk=media.pk only %}
 
     </br><a href="{% url 'list_youtubevideo' %}">Youtube Video List</a>
 {% endblock %}

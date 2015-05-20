@@ -27,25 +27,34 @@ class YoutubeFieldFile(FieldFile):
     def _get_status(self):
         self._require_file()
         status, old_status = self.storage.status(self.name)
-        if status != old_status:
-            model = self.field.model.objects.get(**{self.field.name: self.name})
-            setattr(model, self.field.name, getattr(model, self.field.name).name.replace(old_status, status))
-            model.save()
+        self._update_status(old_status, status)
         return status
     status = property(_get_status)
 
     def _get_processing_progress(self):
+        name = json.loads(self.name)
+        status = name['status']
         completed_progress = {
             'time_left_ms': "0 %s" % ugettext(u"Seconds"),
             'parts_processed': 1000,
             'parts_total': 1000,
-            'percent': 100
+            'percent': 100,
+            'status': status
         }
 
-        if self._get_status() != PROCESSING_STATUS:
+        if status != PROCESSING_STATUS:
             return completed_progress
-        return self.storage.processing_progress(self.name) or completed_progress
+
+        progress = self.storage.processing_progress(self.name) or completed_progress
+        self._update_status(status, progress['status'])
+        return progress
     processing_progress = property(_get_processing_progress)
+
+    def _update_status(self, old_status, new_status):
+        if new_status != old_status:
+            model = self.field.model.objects.get(**{self.field.name: self.name})
+            setattr(model, self.field.name, getattr(model, self.field.name).name.replace(old_status, new_status))
+            model.save()
 
     def save(self, name, content, save=True):
         name = self.field.generate_filename(self.instance, name)

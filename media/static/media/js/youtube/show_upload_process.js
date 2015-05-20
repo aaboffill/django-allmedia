@@ -3,22 +3,8 @@ $(function () {
 
     youtubeFileForms.each(function() {
         var $this = $(this),
-            youtubeFilesCount = (typeof $this.data('youtubeFilesCount') != 'undefined') ? $this.data('youtubeFilesCount') : null,
             youtubeUploadProcessParent = (typeof $($this.data('youtubeProcessParent')) != 'undefined') ? $($this.data('youtubeProcessParent')) : null,
             youtubeProcessUrl = (typeof $this.data('youtubeProcessUrl') != 'undefined') ? $this.data('youtubeProcessUrl') : null;
-
-        if (youtubeFilesCount == null) throw new Error('The youtube files count data must be specified.');
-
-        if (!parseInt(youtubeFilesCount)) {
-            var errorMsg = 'The youtube files count value must be an integer val or a function name.';
-
-            if (!$.isFunction(eval(youtubeFilesCount))) throw new Error(errorMsg);
-
-            youtubeFilesCount = eval(eval(youtubeFilesCount))();
-
-            if (!parseInt(youtubeFilesCount)) throw new Error(errorMsg);
-
-        }
 
         if (youtubeUploadProcessParent == null) throw new Error('The youtube upload process parent data must be specified.');
 

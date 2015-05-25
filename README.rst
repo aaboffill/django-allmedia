@@ -10,6 +10,11 @@ Image thumbnail processing.
 
 Changelog
 =========
+1.0.3
+-----
+
+Deleted connect_signals method call from the media init file.
+
 1.0.2
 -----
 

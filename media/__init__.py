@@ -73,5 +73,3 @@ def connect_signals():
     for model in find_models_with_file_field():
         pre_save.connect(remove_old_files, sender=model)
         post_delete.connect(remove_files, sender=model)
-
-connect_signals()

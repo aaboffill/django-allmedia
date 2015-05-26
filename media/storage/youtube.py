@@ -111,6 +111,8 @@ def get_authenticated_service():
 
 # This method implements an exponential backoff strategy to resume a failed upload.
 def resumable_upload(title, insert_request, size, request=None):
+    from media.models import YoutubeUploadProgress
+
     response = None
     error = None
     retry = 0
@@ -121,18 +123,20 @@ def resumable_upload(title, insert_request, size, request=None):
             if response and 'id' in response:
                 logger.info("Video id '%s' was successfully uploaded." % response['id'])
                 if request:
-                    del request.session['youtube_upload_status']
+                    YoutubeUploadProgress.objects.filter(session_key=request.session.session_key).delete()
             elif not response and status:
                 if UPLOAD_CHUNK_SIZE != -1 and request:
-                    youtube_upload_status = {
-                        'title': title,
-                        'resumable_progress': status.resumable_progress,
-                        'resumable_progress_MB': '%.2f' % (status.resumable_progress / 1048576.00),
-                        'total_size': status.total_size,
-                        'total_size_MB': '%.2f' % (status.total_size / 1048576.00),
-                    }
-                    request.session['youtube_upload_status'] = youtube_upload_status
-                    request.session.save()
+                    youtube_upload_progress = YoutubeUploadProgress(
+                        session_key=request.session.session_key,
+                        progress_data={
+                            'title': title,
+                            'resumable_progress': status.resumable_progress,
+                            'resumable_progress_MB': '%.2f' % (status.resumable_progress / 1048576.00),
+                            'total_size': status.total_size,
+                            'total_size_MB': '%.2f' % (status.total_size / 1048576.00),
+                        }
+                    )
+                    youtube_upload_progress.save()
             else:
                 logger.error("The upload failed with an unexpected response: %s" % response)
         except errors.HttpError, e:

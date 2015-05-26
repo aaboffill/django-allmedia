@@ -1,7 +1,7 @@
 # coding=utf-8
 from django.contrib.auth.decorators import login_required
 from django.conf.urls import patterns, url
-from .views import HandleAjaxFileUploadedView, HandleYoutubeProcessing, YoutubeUploadProcess
+from .views import HandleAjaxFileUploadedView, HandleYoutubeProcessingView, YoutubeUploadProcessView
 
 urlpatterns = patterns('',
     # BASICS
@@ -14,13 +14,13 @@ urlpatterns = patterns('',
 
     url(
         r'^youtube/processing/(?P<video_id>\d+)/$',
-        HandleYoutubeProcessing.as_view(),
+        HandleYoutubeProcessingView.as_view(),
         name="youtube_processing"
     ),
 
     url(
         r'^youtube/upload/process/$',
-        YoutubeUploadProcess.as_view(template_name='media/youtube/upload_process.html'),
+        YoutubeUploadProcessView.as_view(template_name='media/youtube/upload_process.html'),
         name="youtube_upload_process"
     ),
 

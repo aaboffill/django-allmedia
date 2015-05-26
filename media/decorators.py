@@ -14,7 +14,7 @@ def ajax_file_upload(form_file_field_name="file", model_file_field_name=None, co
     def decorator(cls):
         from django import forms
         if not issubclass(cls, forms.ModelForm):
-            raise ImproperlyConfigured("Ajax_file_upload decorator is only suitable for ModelForm descendants.")
+            raise ImproperlyConfigured("ajax_file_upload decorator is only suitable for ModelForm descendants.")
 
         setattr(cls, 'file_field_required', cls.base_fields.get(form_file_field_name).required)
 
@@ -116,6 +116,22 @@ def ajax_file_upload(form_file_field_name="file", model_file_field_name=None, co
         return cls
 
     return decorator
+
+
+def ajax_file_formset_upload(func):
+    if not callable(func):
+        raise ImproperlyConfigured("ajax_file_formset_upload decorator is only suitable for callable objects.")
+
+    from django import forms
+
+    def new_func(model, form=forms.ModelForm, *args, **kwargs):
+        if not issubclass(form.Meta.model, model):
+            raise ImproperlyConfigured("Incompatible model and form class.")
+
+        model = form.Meta.model
+        return func(model, form, *args, **kwargs)
+
+    return new_func
 
 
 def show_youtube_upload_process(fields=None, model=None, save_method=None):

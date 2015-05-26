@@ -9,7 +9,7 @@ from django.contrib.sites.managers import CurrentSiteManager
 from django.db import models
 from django.db.models.signals import pre_save
 from django.utils.translation import ugettext_lazy as _
-from media.fields.files import YoutubeFileField
+from .fields.files import YoutubeFileField, JSONField
 from .settings import MEDIA_LOCATIONS
 from .signals import pre_ajax_file_save
 from .utils import convert_filename
@@ -102,12 +102,43 @@ class Media(models.Model):
         return os.path.split(self.file.name)[1]
 
 
+class ImageManagerMixin(object):
+
+    def for_object(self, obj):
+        return self.filter(content_type__pk=ContentType.objects.get_for_model(obj).pk, object_pk=obj.pk)
+
+
+class ImageManager(ImageManagerMixin, models.Manager):
+    pass
+
+
+class CurrentSiteImageManager(ImageManagerMixin, CurrentSiteManager):
+    pass
+
+
 class Image(Media):
     """
     Represents an image.
     """
     media_type = 'image'
     file = models.ImageField(_('file'), upload_to=Media.upload_to, max_length=255)
+
+    objects = ImageManager()
+    on_site = CurrentSiteImageManager()
+
+
+class VideoManagerMixin(object):
+
+    def for_object(self, obj):
+        return self.filter(content_type__pk=ContentType.objects.get_for_model(obj).pk, object_pk=obj.pk)
+
+
+class VideoManager(VideoManagerMixin, models.Manager):
+    pass
+
+
+class CurrentSiteVideoManager(VideoManagerMixin, CurrentSiteManager):
+    pass
 
 
 class Video(Media):
@@ -116,6 +147,23 @@ class Video(Media):
     """
     media_type = 'video'
     file = models.FileField(_('file'), upload_to=Media.upload_to, max_length=255)
+
+    objects = VideoManager()
+    on_site = CurrentSiteVideoManager()
+
+
+class YoutubeVideoManagerMixin(object):
+
+    def for_object(self, obj):
+        return self.filter(content_type__pk=ContentType.objects.get_for_model(obj).pk, object_pk=obj.pk)
+
+
+class YoutubeVideoManager(YoutubeVideoManagerMixin, models.Manager):
+    pass
+
+
+class CurrentSiteYoutubeVideoManager(YoutubeVideoManagerMixin, CurrentSiteManager):
+    pass
 
 
 class YoutubeVideo(Media):
@@ -130,12 +178,32 @@ class YoutubeVideo(Media):
         tags=Media.tag_list
     )
 
+    objects = YoutubeVideoManager()
+    on_site = CurrentSiteYoutubeVideoManager()
+
+
+class AttachmentManagerMixin(object):
+
+    def for_object(self, obj):
+        return self.filter(content_type__pk=ContentType.objects.get_for_model(obj).pk, object_pk=obj.pk)
+
+
+class AttachmentManager(AttachmentManagerMixin, models.Manager):
+    pass
+
+
+class CurrentSiteAttachmentManager(AttachmentManagerMixin, CurrentSiteManager):
+    pass
+
 
 class Attachment(Media):
     """
     Represents a general attachment.
     """
     file = models.FileField(_('file'), upload_to=Media.upload_to, max_length=255)
+
+    objects = AttachmentManager()
+    on_site = CurrentSiteAttachmentManager()
 
 
 class MediaAlbum(models.Model):
@@ -196,3 +264,8 @@ class AjaxFileUploaded(models.Model):
 
     file = models.FileField(verbose_name=_('ajax file'), max_length=255, upload_to=upload_to)
     date = models.DateTimeField(auto_now=True, verbose_name=_('date'))
+
+
+class YoutubeUploadProgress(models.Model):
+    session_key = models.CharField(_('session key'), max_length=40, primary_key=True)
+    progress_data = JSONField(_('progress data'), max_length=250)

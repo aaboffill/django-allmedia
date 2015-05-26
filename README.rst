@@ -10,6 +10,12 @@ Image thumbnail processing.
 
 Changelog
 =========
+1.0.5
+-----
+
+Added a model to manage the youtube upload progress using the request session key. Added support for ajax upload
+file for django formset.
+
 1.0.3
 -----
 

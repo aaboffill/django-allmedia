@@ -3,7 +3,7 @@ from django.utils.encoding import force_text
 from django.views.generic import View, TemplateView
 from django.utils.translation import ugettext_lazy as _
 from .forms import AjaxFileUploadedForm
-from .models import YoutubeVideo
+from .models import YoutubeVideo, YoutubeUploadProgress
 from .mixins import JSONResponseMixin
 
 
@@ -39,7 +39,7 @@ class HandleAjaxFileUploadedView(JSONResponseMixin, View):
             })
 
 
-class HandleYoutubeProcessing(JSONResponseMixin, View):
+class HandleYoutubeProcessingView(JSONResponseMixin, View):
 
     def get(self, request, *args, **kwargs):
         video_id = kwargs['video_id']
@@ -59,10 +59,14 @@ class HandleYoutubeProcessing(JSONResponseMixin, View):
             })
 
 
-class YoutubeUploadProcess(TemplateView):
+class YoutubeUploadProcessView(TemplateView):
 
     def get_context_data(self, **kwargs):
-        context = super(YoutubeUploadProcess, self).get_context_data(**kwargs)
-        context.update({'youtube_upload_status': self.request.session.get('youtube_upload_status', None)})
+        context = super(YoutubeUploadProcessView, self).get_context_data(**kwargs)
+        try:
+            progress = YoutubeUploadProgress.objects.get(session_key=self.request.session.session_key)
+            context.update({'youtube_upload_status': progress.progress_data})
+        except YoutubeUploadProgress.DoesNotExist:
+            pass
         return context
 

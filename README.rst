@@ -10,6 +10,12 @@ Image thumbnail processing.
 
 Changelog
 =========
+1.0.6
+-----
+
+Changed support for youtube upload progress management to cache or DB. Added decorators to manage the ajax file upload
+to generic and inline django formsets.
+
 1.0.5
 -----
 

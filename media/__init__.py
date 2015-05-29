@@ -71,5 +71,5 @@ def remove_files(sender, instance, **kwargs):
 
 def connect_signals():
     for model in find_models_with_file_field():
-        pre_save.connect(remove_old_files, sender=model)
-        post_delete.connect(remove_files, sender=model)
+        pre_save.connect(remove_old_files, sender=model, dispatch_uid="remove_old_files_for_%s" % model._meta)
+        post_delete.connect(remove_files, sender=model, dispatch_uid="remove_files_for_%s" % model._meta)

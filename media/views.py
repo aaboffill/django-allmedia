@@ -2,6 +2,7 @@
 from django.utils.encoding import force_text
 from django.views.generic import View, TemplateView
 from django.utils.translation import ugettext_lazy as _
+from django.core.cache import cache
 from .forms import AjaxFileUploadedForm
 from .models import YoutubeVideo, YoutubeUploadProgress
 from .mixins import JSONResponseMixin
@@ -64,9 +65,17 @@ class YoutubeUploadProcessView(TemplateView):
     def get_context_data(self, **kwargs):
         context = super(YoutubeUploadProcessView, self).get_context_data(**kwargs)
         try:
-            progress = YoutubeUploadProgress.objects.get(session_key=self.request.session.session_key)
-            context.update({'youtube_upload_status': progress.progress_data})
+            if cache:
+                progress = cache.get(self.request.session.session_key)
+            else:
+                progress = YoutubeUploadProgress.objects.get(session_key=self.request.session.session_key)
+
+            context.update({
+                'youtube_upload_status': progress.progress_data if isinstance(progress, YoutubeUploadProgress) else progress
+            })
         except YoutubeUploadProgress.DoesNotExist:
+            pass
+        except:
             pass
         return context
 

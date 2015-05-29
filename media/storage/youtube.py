@@ -2,6 +2,7 @@
 from django.core.files.storage import Storage as DjangoStorage
 from django.core.files import File
 from django.core.files.uploadedfile import TemporaryUploadedFile, InMemoryUploadedFile
+from django.core.cache import cache
 from django.utils.translation import ugettext
 from django.conf import settings
 import httplib
@@ -76,6 +77,7 @@ DEFAULT_CATEGORY = getattr(settings, 'YOUTUBE_DEFAULT_CATEGORY', 22)
 BASE_URL = getattr(settings, 'YOUTUBE_BASE_URL', 'http://www.youtube.com/embed/%s')
 # string to be added in the video ID while is processing
 PROCESSING_STATUS = 'processing'
+PROCESSED_STATUS = 'processed'
 SUCCEEDED_STATUS = 'succeeded'
 REJECTED_STATUS = 'rejected'
 
@@ -111,8 +113,6 @@ def get_authenticated_service():
 
 # This method implements an exponential backoff strategy to resume a failed upload.
 def resumable_upload(title, insert_request, size, request=None):
-    from media.models import YoutubeUploadProgress
-
     response = None
     error = None
     retry = 0
@@ -123,20 +123,24 @@ def resumable_upload(title, insert_request, size, request=None):
             if response and 'id' in response:
                 logger.info("Video id '%s' was successfully uploaded." % response['id'])
                 if request:
-                    YoutubeUploadProgress.objects.filter(session_key=request.session.session_key).delete()
+                    if cache:
+                        delete_progress_from_cache(request.session.session_key)
+                    else:
+                        delete_progress_from_db(request.session.session_key)
             elif not response and status:
                 if UPLOAD_CHUNK_SIZE != -1 and request:
-                    youtube_upload_progress = YoutubeUploadProgress(
-                        session_key=request.session.session_key,
-                        progress_data={
-                            'title': title,
-                            'resumable_progress': status.resumable_progress,
-                            'resumable_progress_MB': '%.2f' % (status.resumable_progress / 1048576.00),
-                            'total_size': status.total_size,
-                            'total_size_MB': '%.2f' % (status.total_size / 1048576.00),
-                        }
-                    )
-                    youtube_upload_progress.save()
+                    youtube_progress = {
+                        'title': title,
+                        'resumable_progress': status.resumable_progress,
+                        'resumable_progress_MB': '%.2f' % (status.resumable_progress / 1048576.00),
+                        'total_size': status.total_size,
+                        'total_size_MB': '%.2f' % (status.total_size / 1048576.00),
+                    }
+
+                    if cache:
+                        save_progress_in_cache(request.session.session_key, youtube_progress)
+                    else:
+                        save_progress_in_db(request.session.session_key, youtube_progress)
             else:
                 logger.error("The upload failed with an unexpected response: %s" % response)
         except errors.HttpError, e:
@@ -161,6 +165,30 @@ def resumable_upload(title, insert_request, size, request=None):
         time.sleep(sleep_seconds)
 
     return json.dumps({'id': response['id'], 'status': PROCESSING_STATUS, 'size': size})
+
+
+def save_progress_in_db(key, youtube_progress):
+    from media.models import YoutubeUploadProgress
+
+    youtube_upload_progress = YoutubeUploadProgress(
+        session_key=key,
+        progress_data=youtube_progress
+    )
+    youtube_upload_progress.save()
+
+
+def delete_progress_from_db(key):
+    from media.models import YoutubeUploadProgress
+
+    YoutubeUploadProgress.objects.filter(session_key=key).delete()
+
+
+def save_progress_in_cache(key, youtube_progress):
+    cache.set(key, youtube_progress)
+
+
+def delete_progress_from_cache(key):
+    cache.delete(key)
 
 
 class FileYoutubeStorage(DjangoStorage):
@@ -380,6 +408,16 @@ class FileYoutubeStorage(DjangoStorage):
                     'parts_processed': parts_processed,
                     'parts_total': parts_total,
                     'percent': percent,
+                    'status': status
+                }
+        except KeyError:
+            status = video_response['items'][0]['status']['uploadStatus']
+            if status == PROCESSED_STATUS:
+                return {
+                    'time_left_ms': "0 %s" % ugettext(u"Seconds"),
+                    'parts_processed': 1000,
+                    'parts_total': 1000,
+                    'percent': 100,
                     'status': status
                 }
         except KeyError:

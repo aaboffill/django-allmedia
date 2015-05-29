@@ -2,9 +2,7 @@
 import os
 from django.core.exceptions import ImproperlyConfigured
 from django.forms import ValidationError
-from django.db.models.signals import pre_save, post_delete
 from .fields.files import YoutubeFileField
-from . import remove_old_files, remove_files
 from .models import AjaxFileUploaded
 from .signals import pre_ajax_file_save
 
@@ -18,6 +16,8 @@ def ajax_file_upload(form_file_field_name="file", model_file_field_name=None, co
 
         setattr(cls, 'file_field_required', cls.base_fields.get(form_file_field_name).required)
 
+        original_model = cls.Meta.model
+
         class Meta:
             proxy = True
 
@@ -26,7 +26,7 @@ def ajax_file_upload(form_file_field_name="file", model_file_field_name=None, co
             if getattr(self, "temp_file", None):
                 temp_file = getattr(self, "temp_file")
                 # connect with pre_ajax_file_save signal
-                pre_ajax_file_save.send(self.__class__, instance=self)
+                pre_ajax_file_save.send(original_model, instance=self)
                 # create the new field field instance
                 getattr(self, model_file_field_name if model_file_field_name else form_file_field_name).save(
                     os.path.basename(temp_file.file.path),
@@ -34,20 +34,23 @@ def ajax_file_upload(form_file_field_name="file", model_file_field_name=None, co
                     False
                 )
 
-            super(ProxyModel, self).save(force_insert, force_update, using, update_fields)
+            self.__class__ = original_model
+            original_model.save(self, force_insert, force_update, using, update_fields)
+
+        def model_delete(self, using=None):
+            self.__class__ = original_model
+            original_model.delete(self, using)
 
         ProxyModel = type(
-            "%sAjaxProxy" % cls.Meta.model.__name__,
-            (cls.Meta.model,),
+            "%sAjaxProxy" % original_model.__name__,
+            (original_model,),
             {
-                '__module__': cls.Meta.model.__module__,
+                '__module__': original_model.__module__,
                 'Meta': Meta,
-                'save': model_save
+                'save': model_save,
+                'delete': model_delete
             }
         )
-
-        pre_save.connect(remove_old_files, sender=ProxyModel)
-        post_delete.connect(remove_files, sender=ProxyModel)
 
         # Init method
         normal_init_method = getattr(cls, '__init__')
@@ -118,9 +121,9 @@ def ajax_file_upload(form_file_field_name="file", model_file_field_name=None, co
     return decorator
 
 
-def ajax_file_formset_upload(func):
+def ajax_file_generic_inlineformset_upload(func):
     if not callable(func):
-        raise ImproperlyConfigured("ajax_file_formset_upload decorator is only suitable for callable objects.")
+        raise ImproperlyConfigured("ajax_file_generic_inlineformset_upload decorator is only suitable for callable objects.")
 
     from django import forms
 
@@ -130,6 +133,22 @@ def ajax_file_formset_upload(func):
 
         model = form.Meta.model
         return func(model, form, *args, **kwargs)
+
+    return new_func
+
+
+def ajax_file_inlineformset_upload(func):
+    if not callable(func):
+        raise ImproperlyConfigured("ajax_file_inlineformset_upload decorator is only suitable for callable objects.")
+
+    from django import forms
+
+    def new_func(parent_model, model, form=forms.ModelForm, *args, **kwargs):
+        if not issubclass(form.Meta.model, model):
+            raise ImproperlyConfigured("Incompatible model and form class.")
+
+        model = form.Meta.model
+        return func(parent_model, model, form, *args, **kwargs)
 
     return new_func
 

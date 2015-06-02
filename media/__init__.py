@@ -57,7 +57,7 @@ def remove_old_files(sender, instance, **kwargs):
                 new_tags = new_file.field.tags if not callable(new_file.field.tags) else new_file.field.tags(instance)
             tags = new_tags if old_tags != new_tags else None
 
-            if title or privacy or comment or tags:
+            if title or not privacy is None or comment or tags:
                 old_file.update(title, privacy, comment, tags if not tags or isinstance(tags, list) else tags.split(','))
 
 

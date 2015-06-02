@@ -10,6 +10,11 @@ Image thumbnail processing.
 
 Changelog
 =========
+1.0.7
+-----
+
+Fixed youtube data actualization.
+
 1.0.6
 -----
 

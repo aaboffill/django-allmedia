@@ -85,9 +85,15 @@ UPLOAD_CHUNK_SIZE = getattr(settings, 'YOUTUBE_UPLOAD_CHUNK_SIZE', -1)
 if UPLOAD_CHUNK_SIZE != 1 and UPLOAD_CHUNK_SIZE % 256 != 0:
     raise "The chunk size value must be divisible by 256"
 
+SPECIFIC_AUTH_PORT = getattr(settings, 'YOUTUBE_SPECIFIC_AUTH_PORT', None)
+
 
 def get_parse_args():
+    logger.info("Getting oauth2 authentication arg params")
     args, unknown = tools.argparser.parse_known_args()
+    if SPECIFIC_AUTH_PORT:
+        logger.info("Setting oauth2 authentication port to: %s" % SPECIFIC_AUTH_PORT)
+        args.auth_host_port = [SPECIFIC_AUTH_PORT]
     return args
 
 

@@ -10,6 +10,11 @@ Image thumbnail processing.
 
 Changelog
 =========
+1.0.9
+-----
+
+Added setting to specify an specific oauth2 authentication port.
+
 1.0.8
 -----
 
@@ -232,6 +237,8 @@ Usage
         + ``YOUTUBE_UPLOAD_CHUNK_SIZE`` : Specify the chunk size for uploading the video (optional).
           It's important to specify a value if you wish to show the youtube upload progress to the user. If the specified value is not divisible by 256,
           an error will be raised.
+
+        + ``YOUTUBE_SPECIFIC_AUTH_PORT`` : If is necessary you can specify the port that you pretend use to the oauth2 authentication.
 
     -- Usage:
         + Replace the django ``FileField`` for the subclass ``YoutubeFileField`` to define the video file field in the model. For the ``YoutubeFileField``

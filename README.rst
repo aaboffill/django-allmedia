@@ -10,6 +10,11 @@ Image thumbnail processing.
 
 Changelog
 =========
+1.0.8
+-----
+
+Added loggers for the youtube service oauth authentication.
+
 1.0.7
 -----
 

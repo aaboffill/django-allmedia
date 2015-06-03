@@ -92,23 +92,31 @@ def get_parse_args():
 
 
 def get_authenticated_service():
-    flow = flow_from_clientsecrets(
-        os.path.join(CONF_FOLDER, CLIENT_SECRETS_FILE),
-        scope=YOUTUBE_SCOPE,
-        message=MISSING_CLIENT_SECRETS_MESSAGE
-    )
+    try:
+        logger.info("Init google oauth authentication process with, using json file from: %s" % CLIENT_SECRETS_FILE)
+        flow = flow_from_clientsecrets(
+            os.path.join(CONF_FOLDER, CLIENT_SECRETS_FILE),
+            scope=YOUTUBE_SCOPE,
+            message=MISSING_CLIENT_SECRETS_MESSAGE
+        )
 
-    storage = Storage(os.path.join(CONF_FOLDER, "youtube-oauth2.json"))
-    credentials = storage.get()
+        logger.info("Creating oauth storage file")
+        storage = Storage(os.path.join(CONF_FOLDER, "youtube-oauth2.json"))
+        logger.info("Getting credentials...")
+        credentials = storage.get()
 
-    if credentials is None or credentials.invalid:
-        credentials = tools.run_flow(flow, storage, get_parse_args())
+        if credentials is None or credentials.invalid:
+            logger.info("Credentials are None or invalids, running flow to get the new credentials")
+            credentials = tools.run_flow(flow, storage, get_parse_args())
 
-    return discovery.build(
-        YOUTUBE_API_SERVICE_NAME,
-        YOUTUBE_API_VERSION,
-        http=credentials.authorize(httplib2.Http())
-    )
+        logger.info("Building youtube service API")
+        return discovery.build(
+            YOUTUBE_API_SERVICE_NAME,
+            YOUTUBE_API_VERSION,
+            http=credentials.authorize(httplib2.Http())
+        )
+    except Exception as e:
+        logger.error(e)
 
 
 # This method implements an exponential backoff strategy to resume a failed upload.

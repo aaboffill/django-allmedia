@@ -97,10 +97,12 @@ def run_flow(flow, storage, flags, http=None):
         success = False
         port_number = 0
         for port in flags.auth_host_port:
-            logger.info("Iterating for the auth hot ports")
+            logger.info("Iterating for the auth host ports")
             port_number = port
             try:
+                logger.info("Creating httpd with host %s and port %s" % (flags.auth_host_name, port))
                 httpd = tools.ClientRedirectServer((flags.auth_host_name, port), tools.ClientRedirectHandler)
+                logger.info("Created httpd with host %s and port %s" % (flags.auth_host_name, port))
             except socket.error as e:
                 logger.error("socket.error")
                 logger.error(e)

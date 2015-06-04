@@ -101,7 +101,9 @@ def run_flow(flow, storage, flags, http=None):
             port_number = port
             try:
                 httpd = tools.ClientRedirectServer((flags.auth_host_name, port), tools.ClientRedirectHandler)
-            except socket.error:
+            except socket.error as e:
+                logger.error("socket.error")
+                logger.error(e)
                 pass
             else:
                 success = True

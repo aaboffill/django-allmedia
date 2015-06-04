@@ -5,6 +5,7 @@ from django.core.files.uploadedfile import TemporaryUploadedFile, InMemoryUpload
 from django.core.cache import cache
 from django.utils.translation import ugettext
 from django.conf import settings
+from django.contrib.sites.models import Site
 import httplib
 import httplib2
 import os
@@ -12,12 +13,13 @@ import random
 import time
 import logging
 import json
+import socket
+import sys
 
 from apiclient import discovery, errors, http
 from oauth2client.client import flow_from_clientsecrets
 from oauth2client.file import Storage
-from oauth2client import tools
-import sys
+from oauth2client import tools, util, client
 
 logger = logging.getLogger(__name__)
 
@@ -88,9 +90,79 @@ if UPLOAD_CHUNK_SIZE != 1 and UPLOAD_CHUNK_SIZE % 256 != 0:
 SPECIFIC_AUTH_PORT = getattr(settings, 'YOUTUBE_SPECIFIC_AUTH_PORT', None)
 
 
+@util.positional(3)
+def run_flow(flow, storage, flags, http=None):
+    logging.getLogger().setLevel(getattr(logging, flags.logging_level))
+    if not flags.noauth_local_webserver:
+        success = False
+        port_number = 0
+        for port in flags.auth_host_port:
+            logger.info("Iterating for the auth hot ports")
+            port_number = port
+            try:
+                httpd = tools.ClientRedirectServer((flags.auth_host_name, port), tools.ClientRedirectHandler)
+            except socket.error:
+                pass
+            else:
+                success = True
+                logger.info("Created httpd with host %s and port %s" % (flags.auth_host_name, port))
+            break
+        flags.noauth_local_webserver = not success
+
+    if not flags.noauth_local_webserver:
+        oauth_callback = 'http://%s:%s/' % (flags.auth_host_name, port_number)
+    else:
+        oauth_callback = client.OOB_CALLBACK_URN
+
+    logger.info("Created oauth_callback url %s" % oauth_callback)
+    flow.redirect_uri = oauth_callback
+    authorize_url = flow.step1_get_authorize_url()
+
+    if not flags.noauth_local_webserver:
+        import webbrowser
+        logger.info("Opening in the browser %s" % authorize_url)
+        webbrowser.open(authorize_url, new=1, autoraise=True)
+        print('    ' + authorize_url)
+    else:
+        print('    ' + authorize_url)
+
+    code = None
+    if not flags.noauth_local_webserver:
+        httpd.handle_request()
+        if 'error' in httpd.query_params:
+            logger.error('Authentication request was rejected.')
+            sys.exit('Authentication request was rejected.')
+        if 'code' in httpd.query_params:
+            logger.info("Accepted successfully the code value %s" % code)
+            code = httpd.query_params['code']
+        else:
+            logger.error('Failed to find "code" in the query parameters of the redirect.')
+            sys.exit('Try running with --noauth_local_webserver.')
+    else:
+        code = input('Enter verification code: ').strip()
+
+    try:
+        logger.info("Getting credentials from code %s" % code)
+        credential = flow.step2_exchange(code, http=http)
+    except client.FlowExchangeError as e:
+        logger.error('Authentication has failed: %s' % e)
+        sys.exit('Authentication has failed: %s' % e)
+
+    logger.info("Putting credentials in the storage")
+    storage.put(credential)
+    logger.info("Setting storage in the credentials")
+    credential.set_store(storage)
+    logger.info('Authentication successful.')
+
+    return credential
+
+
 def get_parse_args():
     logger.info("Getting oauth2 authentication arg params")
     args, unknown = tools.argparser.parse_known_args()
+    current_site = Site.objects.get_current()
+    parts = current_site.domain.split(":")
+    args.auth_host_name = parts[0]
     if SPECIFIC_AUTH_PORT:
         logger.info("Setting oauth2 authentication port to: %s" % SPECIFIC_AUTH_PORT)
         args.auth_host_port = [SPECIFIC_AUTH_PORT]
@@ -113,7 +185,7 @@ def get_authenticated_service():
 
         if credentials is None or credentials.invalid:
             logger.info("Credentials are None or invalids, running flow to get the new credentials")
-            credentials = tools.run_flow(flow, storage, get_parse_args())
+            credentials = run_flow(flow, storage, get_parse_args())
 
         logger.info("Building youtube service API")
         return discovery.build(

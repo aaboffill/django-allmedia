@@ -114,7 +114,8 @@ def run_flow(flow, storage, flags, http=None):
         flags.noauth_local_webserver = not success
 
     if not flags.noauth_local_webserver:
-        oauth_callback = 'http://%s:%s/' % (flags.auth_host_name, port_number)
+        oauth_callback = 'http://%s:%s/' % (flags.auth_host_name, 80)
+        httpd.server_port = 80
     else:
         oauth_callback = client.OOB_CALLBACK_URN
 

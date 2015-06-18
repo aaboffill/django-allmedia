@@ -10,6 +10,7 @@ from django.db import models
 from django.db.models.signals import pre_save
 from django.utils.translation import ugettext_lazy as _
 from .fields.files import YoutubeFileField, JSONField
+from .storage.youtube import PROCESSING_STATUS
 from .settings import MEDIA_LOCATIONS
 from .signals import pre_ajax_file_save
 from .utils import convert_filename
@@ -180,6 +181,10 @@ class YoutubeVideo(Media):
 
     objects = YoutubeVideoManager()
     on_site = CurrentSiteYoutubeVideoManager()
+
+    @property
+    def is_processed(self):
+        return self.file.status != PROCESSING_STATUS
 
 
 class AttachmentManagerMixin(object):

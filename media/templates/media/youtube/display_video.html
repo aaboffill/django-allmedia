@@ -1,19 +1,8 @@
-<iframe class="embed-youtube-video" width="420" height="315" src="{{ file.url }}"
-        data-while-processing="hide" data-url="{% url 'youtube_processing' video_id=model_pk %}" data-progress-container="#progress-container-{{ model_pk }}"
-        data-processing-percent="#youtube-processing-percent:func->text" data-processing-time-left="#youtube-processing-time-left:func->text"
-        data-processing-processed="#youtube-processing-progress:attr->value" data-processing-total="#youtube-processing-progress:attr->max"
-        data-video-status="#video-status:func->text">
-</iframe>
+{% load i18n %}
 
-{% with file.processing_progress as progress %}
-    {% if progress.percent != 100 %}
-        <div id="progress-container-{{ model_pk }}">
-            </br><h4 id="video-status">{{ file.status }}</h4>
-            <label>
-                Youtube Processing... <span id="youtube-processing-percent">{{ progress.percent }}</span> %
-                - Time remaining: <span id="youtube-processing-time-left">{{ progress.time_left_ms }}</span>
-            </label>
-            </br><progress id="youtube-processing-progress" value="{{ progress.parts_processed }}" max="{{ progress.parts_total }}"></progress>
-        </div>
-    {% endif %}
-{% endwith %}
+<iframe class="embed-youtube-video" width="420" height="315" src="{{ file.url }}"
+        data-url="{% url 'youtube_processing' video_id=model_pk %}"
+        data-processed="{% if processed %}1{% else %}0{% endif %}"
+        data-while-processing-info="#youtube-while-processing-info">
+</iframe>
+<p id="youtube-while-processing-info" style="display: none;">{% trans "The video is being processed by youtube" %}</p>

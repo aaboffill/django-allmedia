@@ -160,12 +160,12 @@ class FileYoutubeStorage(DjangoStorage):
 
     def _get_authenticated_service(self):
         try:
-            if not getattr(self, 'request', False):
-                error_msg = 'The FileYoutubeStorage class must be a request attribute specified, you should need to use the use_youtube_api decorator.'
+            if not getattr(self, 'request', getattr(self, 'user', False)):
+                error_msg = 'The FileYoutubeStorage class must be a (request or user) attribute specified, you should need to use the use_youtube_api decorator.'
                 logger.error(error_msg)
                 raise error_msg
 
-            user = getattr(self, 'request').user
+            user = getattr(self, 'request').user if getattr(self, 'request', False) else getattr(self, 'user')
             token = SocialToken.objects.filter(
                 app__provider='google',
                 account__provider='google',
@@ -369,58 +369,3 @@ class FileYoutubeStorage(DjangoStorage):
             return PROCESSING_STATUS, name['status']
 
         return name['status'], name['status']
-
-    def processing_progress(self, name):
-        name = json.loads(name)
-        youtube_id = name['id']
-        youtube = self._get_authenticated_service()
-
-        video_response = youtube.videos().list(
-            id=youtube_id,
-            part='processingDetails,status',
-            fields='items(id,processingDetails(processingProgress),status(uploadStatus))'
-        ).execute()
-
-        unit = ugettext(u"Seconds")
-        try:
-            if 'processingProgress' in video_response['items'][0]['processingDetails']:
-                processing_progress = video_response['items'][0]['processingDetails']['processingProgress']
-
-                status = video_response['items'][0]['status']['uploadStatus']
-
-                parts_total = int(processing_progress['partsTotal'])
-                parts_processed = int(processing_progress['partsProcessed'])
-                time_left_ms = int(processing_progress['timeLeftMs'])
-                percent = parts_processed * 100 / parts_total
-                time_left = time_left_ms / 1000
-                if time_left > 60:
-                    time_left = (time_left / 60)
-                    unit = ugettext(u"Minutes")
-
-                return {
-                    'time_left_ms': "%s %s" % (time_left, unit),
-                    'parts_processed': parts_processed,
-                    'parts_total': parts_total,
-                    'percent': percent,
-                    'status': status
-                }
-        except KeyError:
-            status = video_response['items'][0]['status']['uploadStatus']
-            if status == PROCESSED_STATUS:
-                return {
-                    'time_left_ms': "0 %s" % ugettext(u"Seconds"),
-                    'parts_processed': 1000,
-                    'parts_total': 1000,
-                    'percent': 100,
-                    'status': status
-                }
-        except KeyError:
-            pass
-
-        return {
-            'time_left_ms': ugettext(u"Unknown time"),
-            'parts_processed': 0,
-            'parts_total': 1000,
-            'percent': 0,
-            'status': name['status']
-        }

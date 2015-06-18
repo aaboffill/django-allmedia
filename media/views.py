@@ -45,12 +45,9 @@ class HandleYoutubeProcessingView(JSONResponseMixin, View):
     def get(self, request, *args, **kwargs):
         video_id = kwargs['video_id']
         try:
-            video = YoutubeVideo.objects.get(pk=video_id)
-            processing_progress = video.file.processing_progress
-
             return self.render_to_response({
                 'result': True,
-                'processing_progress': processing_progress
+                'processed': YoutubeVideo.objects.get(pk=video_id).is_processed
             })
 
         except YoutubeVideo.DoesNotExist:

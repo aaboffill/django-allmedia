@@ -34,25 +34,6 @@ class YoutubeFieldFile(FieldFile):
         return status
     status = property(_get_status)
 
-    def _get_processing_progress(self):
-        name = json.loads(self.name)
-        status = name['status']
-        completed_progress = {
-            'time_left_ms': "0 %s" % ugettext(u"Seconds"),
-            'parts_processed': 1000,
-            'parts_total': 1000,
-            'percent': 100,
-            'status': status
-        }
-
-        if status != PROCESSING_STATUS:
-            return completed_progress
-
-        progress = self.storage.processing_progress(self.name) or completed_progress
-        self._update_status(status, progress['status'])
-        return progress
-    processing_progress = property(_get_processing_progress)
-
     def _update_status(self, old_status, new_status):
         if new_status != old_status:
             model = self.field.model.objects.get(**{self.field.name: self.name})

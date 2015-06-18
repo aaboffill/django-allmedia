@@ -2,7 +2,7 @@
 from django.contrib.contenttypes.models import ContentType
 from django.http import HttpResponseRedirect
 from django.views.generic import ListView, CreateView, DetailView, UpdateView, TemplateView
-from media.decorators import show_youtube_upload_process
+from media.decorators import use_youtube_api
 from media.models import YoutubeVideo
 
 
@@ -23,7 +23,6 @@ class ListMediaItem(ListView):
         return context
 
 
-@show_youtube_upload_process()
 class CreateMedia(CreateView):
 
     def get_context_data(self, **kwargs):
@@ -33,6 +32,7 @@ class CreateMedia(CreateView):
         })
         return context
 
+    @use_youtube_api(['model'])
     def form_valid(self, form):
         """
         If the form is valid, save the associated model.
@@ -46,7 +46,9 @@ class CreateMedia(CreateView):
         return HttpResponseRedirect(self.get_success_url())
 
 
-@show_youtube_upload_process()
+# CreateMedia.form_valid = use_youtube_api(CreateMedia.form_valid, models=['model'])
+
+
 class UpdateMedia(UpdateView):
 
     def get_context_data(self, **kwargs):
@@ -55,6 +57,10 @@ class UpdateMedia(UpdateView):
             'list_url': 'list_%s' % self.model.__name__.lower(),
         })
         return context
+
+    @use_youtube_api(['model'])
+    def form_valid(self, form):
+        return super(UpdateMedia, self).form_valid(form)
 
 
 class DetailMedia(DetailView):
@@ -72,7 +78,6 @@ class DetailMedia(DetailView):
 from django.forms.formsets import formset_factory
 
 
-@show_youtube_upload_process()
 class CreateMultipleYoutubeVideos(CreateView):
 
     def __init__(self, **kwargs):
@@ -92,6 +97,7 @@ class CreateMultipleYoutubeVideos(CreateView):
         else:
             return self.form_invalid(formset)
 
+    @use_youtube_api(['formset.form.Meta.model'])
     def form_valid(self, formset):
         for form in formset:
             mock_ct = ContentType.objects.get_for_model(self.request.user)

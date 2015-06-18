@@ -11,6 +11,7 @@ setup(
     zip_safe=False,
     description="All Media for Django (Images, Videos, Attachments)",
     install_requires=['django>=1.6.1',
+                      'django-allauth>=0.16.1',
                       'South==0.8.4',
                       'pytz==2013d',
                       'billiard==3.3.0.17',

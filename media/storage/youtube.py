@@ -5,6 +5,7 @@ from django.core.files.uploadedfile import TemporaryUploadedFile, InMemoryUpload
 from django.core.cache import cache
 from django.utils.translation import ugettext
 from django.conf import settings
+from allauth.socialaccount.models import SocialToken
 import httplib
 import httplib2
 import os
@@ -14,9 +15,8 @@ import logging
 import json
 
 from apiclient import discovery, errors, http
-from oauth2client.client import flow_from_clientsecrets
-from oauth2client.file import Storage
-from oauth2client import tools
+from oauth2client.client import GoogleCredentials
+from oauth2client import GOOGLE_TOKEN_URI
 import sys
 
 logger = logging.getLogger(__name__)
@@ -41,23 +41,10 @@ RETRIABLE_EXCEPTIONS = (
 # codes is raised.
 RETRIABLE_STATUS_CODES = [500, 502, 503, 504]
 
-# The CLIENT_SECRETS_FILE variable specifies the name of a file that contains
-# the OAuth 2.0 information for this application, including its client_id and
-# client_secret.
-CLIENT_SECRETS_FILE = getattr(settings, 'YOUTUBE_CLIENT_SECRETS_FILE', None)
-# Youtube configuration folder
-CONF_FOLDER = getattr(settings, 'YOUTUBE_CONF_FOLDER', None)
-if not CONF_FOLDER:
-    raise 'The setting YOUTUBE_CONF_FOLDER must be defined.'
-
 # This OAuth 2.0 access scope allows an application to upload files and for full
 # read/write access to the authenticated user's YouTube channel.
-YOUTUBE_SCOPE = "https://www.googleapis.com/auth/youtube https://www.googleapis.com/auth/youtube.upload"
 YOUTUBE_API_SERVICE_NAME = "youtube"
 YOUTUBE_API_VERSION = "v3"
-
-# This variable defines a message to display if the CLIENT_SECRETS_FILE is missing.
-MISSING_CLIENT_SECRETS_MESSAGE = "The setting YOUTUBE_CLIENT_SECRETS_FILE must be defined."
 
 VALID_PRIVACY_STATUSES = ("public", "private", "unlisted")
 privacy_status = getattr(settings, 'YOUTUBE_DEFAULT_PRIVACY_STATUS', 0)
@@ -84,45 +71,6 @@ REJECTED_STATUS = 'rejected'
 UPLOAD_CHUNK_SIZE = getattr(settings, 'YOUTUBE_UPLOAD_CHUNK_SIZE', -1)
 if UPLOAD_CHUNK_SIZE != 1 and UPLOAD_CHUNK_SIZE % 256 != 0:
     raise "The chunk size value must be divisible by 256"
-
-SPECIFIC_AUTH_PORT = getattr(settings, 'YOUTUBE_SPECIFIC_AUTH_PORT', None)
-
-
-def get_parse_args():
-    logger.info("Getting oauth2 authentication arg params")
-    args, unknown = tools.argparser.parse_known_args()
-    if SPECIFIC_AUTH_PORT:
-        logger.info("Setting oauth2 authentication port to: %s" % SPECIFIC_AUTH_PORT)
-        args.auth_host_port = [SPECIFIC_AUTH_PORT]
-    return args
-
-
-def get_authenticated_service():
-    try:
-        logger.info("Init google oauth authentication process with, using json file from: %s" % CLIENT_SECRETS_FILE)
-        flow = flow_from_clientsecrets(
-            os.path.join(CONF_FOLDER, CLIENT_SECRETS_FILE),
-            scope=YOUTUBE_SCOPE,
-            message=MISSING_CLIENT_SECRETS_MESSAGE
-        )
-
-        logger.info("Creating oauth storage file")
-        storage = Storage(os.path.join(CONF_FOLDER, "youtube-oauth2.json"))
-        logger.info("Getting credentials...")
-        credentials = storage.get()
-
-        if credentials is None or credentials.invalid:
-            logger.info("Credentials are None or invalids, running flow to get the new credentials")
-            credentials = tools.run_flow(flow, storage, get_parse_args())
-
-        logger.info("Building youtube service API")
-        return discovery.build(
-            YOUTUBE_API_SERVICE_NAME,
-            YOUTUBE_API_VERSION,
-            http=credentials.authorize(httplib2.Http())
-        )
-    except Exception as e:
-        logger.error(e)
 
 
 # This method implements an exponential backoff strategy to resume a failed upload.
@@ -210,6 +158,38 @@ class FileYoutubeStorage(DjangoStorage):
     File youtube storage
     """
 
+    def _get_authenticated_service(self):
+        try:
+            if not getattr(self, 'request', False):
+                error_msg = 'The FileYoutubeStorage class must be a request attribute specified, you should need to use the use_youtube_api decorator.'
+                logger.error(error_msg)
+                raise error_msg
+
+            user = getattr(self, 'request').user
+            token = SocialToken.objects.filter(
+                app__provider='google',
+                account__provider='google',
+                account__user=user
+            ).get()
+
+            credentials = GoogleCredentials(
+                access_token=token.token,
+                client_id=token.app.client_id,
+                client_secret=token.app.secret,
+                refresh_token=token.token_secret,
+                token_expiry=token.expires_at,
+                token_uri=GOOGLE_TOKEN_URI,
+                user_agent=None
+            )
+            return discovery.build(YOUTUBE_API_SERVICE_NAME, YOUTUBE_API_VERSION, credentials=credentials)
+        except SocialToken.DoesNotExist:
+            error_msg = 'Does not exist a google social token for the user: %s' % user
+            logger.error(error_msg)
+            raise error_msg
+        except Exception as e:
+            logger.error(e)
+            raise e
+
     def _open(self, name, mode='rb'):
         pass
 
@@ -233,7 +213,7 @@ class FileYoutubeStorage(DjangoStorage):
         return self._save(name, content, title, privacy, comment, tags)
 
     def _save(self, name, content, title='', privacy=None, comment='', tags=''):
-        youtube = get_authenticated_service()
+        youtube = self._get_authenticated_service()
 
         if not isinstance(privacy, bool):
             privacy = DEFAULT_PRIVACY_STATUS
@@ -290,7 +270,7 @@ class FileYoutubeStorage(DjangoStorage):
     def delete(self, name):
         name = json.loads(name)
         youtube_id = name['id']
-        youtube = get_authenticated_service()
+        youtube = self._get_authenticated_service()
 
         try:
             youtube.videos().delete(
@@ -305,7 +285,7 @@ class FileYoutubeStorage(DjangoStorage):
     def update(self, name, title, privacy, comment, tags):
         name = json.loads(name)
         youtube_id = name['id']
-        youtube = get_authenticated_service()
+        youtube = self._get_authenticated_service()
 
         video_response = youtube.videos().list(
             id=youtube_id,
@@ -349,7 +329,7 @@ class FileYoutubeStorage(DjangoStorage):
     def exists(self, name):
         name = json.loads(name)
         youtube_id = name['id']
-        youtube = get_authenticated_service()
+        youtube = self._get_authenticated_service()
 
         video_response = youtube.videos().list(
             id=youtube_id,
@@ -373,7 +353,7 @@ class FileYoutubeStorage(DjangoStorage):
         name = json.loads(name)
         if name['status'] == PROCESSING_STATUS:
             youtube_id = name['id']
-            youtube = get_authenticated_service()
+            youtube = self._get_authenticated_service()
 
             video_response = youtube.videos().list(
                 id=youtube_id,
@@ -393,7 +373,7 @@ class FileYoutubeStorage(DjangoStorage):
     def processing_progress(self, name):
         name = json.loads(name)
         youtube_id = name['id']
-        youtube = get_authenticated_service()
+        youtube = self._get_authenticated_service()
 
         video_response = youtube.videos().list(
             id=youtube_id,

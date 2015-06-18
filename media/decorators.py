@@ -2,7 +2,8 @@
 import os
 from django.core.exceptions import ImproperlyConfigured
 from django.forms import ValidationError
-from .fields.files import YoutubeFileField
+from functools import wraps
+from django.utils.decorators import available_attrs
 from .models import AjaxFileUploaded
 from .signals import pre_ajax_file_save
 
@@ -153,39 +154,44 @@ def ajax_file_inlineformset_upload(func):
     return new_func
 
 
-def show_youtube_upload_process(fields=None, model=None, save_method=None):
-    if not fields:
-        fields = []
+def use_youtube_api(model_attributes):
 
-    def decorator(cls):
-        from django.views.generic import CreateView, UpdateView
-        from django.db.models import Model
-        if (not model or not save_method) and not issubclass(cls, (CreateView, UpdateView)):
-            raise ImproperlyConfigured("If the model or save_method args are not specified, "
-                                       "then show_youtube_upload_process decorator is only suitable "
-                                       "for CreateView or UpdateView descendants.")
+    def decorator(func):
+        if not callable(func):
+            raise ImproperlyConfigured("use_youtube_api decorator is only suitable for callable objects.")
 
-        if model and not issubclass(model, Model):
-            raise ImproperlyConfigured("model arg must be a Model descendants.")
+        @wraps(func, assigned=available_attrs(func))
+        def new_func(self, *args, **kwargs):
+            from django.views.generic import View
+            from django.db.models import Model
+            from .fields.files import YoutubeFileField
 
-        # Save method
-        normal_save_method = getattr(cls, save_method or 'form_valid')
+            if not isinstance(self, View):
+                raise ImproperlyConfigured("use_youtube_api decorator is only suitable for django View descendants.")
 
-        def method(self, *args, **kwargs):
-            current_model = model or getattr(self, 'model')
-            all_youtube_fields = len(fields) == 0
-            # finding youtube fields
-            for field in current_model._meta.fields:
-                if not isinstance(field, YoutubeFileField):
-                    continue
+            if model_attributes and isinstance(model_attributes, (list, set, tuple)):
+                for attr_name in model_attributes:
+                    attr_split = attr_name.split('.')
+                    attr_split_length = len(attr_split)
+                    if attr_split_length > 1:
+                        for i in xrange(attr_split_length):
+                            if i == 0:
+                                model = getattr(self, attr_split[i])
+                            else:
+                                model = getattr(model, attr_split[i])
+                    else:
+                        model = getattr(self, attr_name)
+                    if not model or not issubclass(model, Model):
+                        continue
 
-                if all_youtube_fields or field.name in fields:
-                    setattr(field.storage, 'request', getattr(self, 'request', None))
+                    # finding youtube fields
+                    for field in model._meta.fields:
+                        if not isinstance(field, YoutubeFileField):
+                            continue
 
-            return normal_save_method(self, *args, **kwargs)
+                        setattr(field.storage, 'request', getattr(self, 'request', None))
 
-        setattr(cls, save_method or 'form_valid', method)
-
-        return cls
+            return func(self, args, kwargs)
+        return new_func
 
     return decorator

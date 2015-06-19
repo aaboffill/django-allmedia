@@ -353,7 +353,10 @@ class FileYoutubeStorage(DjangoStorage):
         name = json.loads(name)
         if name['status'] == PROCESSING_STATUS:
             youtube_id = name['id']
-            youtube = self._get_authenticated_service()
+            try:
+                youtube = self._get_authenticated_service()
+            except:
+                return name['status'], name['status']
 
             video_response = youtube.videos().list(
                 id=youtube_id,

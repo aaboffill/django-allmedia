@@ -17,31 +17,50 @@ $(function () {
                 if (hideIFrame) $this.hide();
                 if (whileProcessingInfo) whileProcessingInfo.show();
 
-                requestingList[url] = false;
-                intervalList[url] = window.setInterval(function() {
-                    if (!requestingList[url]) {
-                        requestingList[url] = true;
-                        $.get(url, function (response) {
-                            if (response['result']) {
-                                if (response['processed']) {
-                                    window.clearInterval(intervalList[url]);
-                                    $this.show();
-                                    whileProcessingInfo.hide();
+                requestingList[url] = true;
+                $.get(url, function (response) {
+                    if (response['result']) {
+                        if (response['processed']) {
+                            $this.show();
+                            whileProcessingInfo.hide();
+                        } else {
+                            intervalList[url] = window.setInterval(function() {
+                                if (!requestingList[url]) {
+                                    requestingList[url] = true;
+                                    $.get(url, function (response) {
+                                        if (response['result']) {
+                                            if (response['processed']) {
+                                                window.clearInterval(intervalList[url]);
+                                                $this.show();
+                                                whileProcessingInfo.hide();
+                                            }
+                                        } else {
+                                            $.each(response['failedMsgs'], function (i, msg) {
+                                                if (typeof $.addNotification != 'undefined') {
+                                                    $.addNotification($.TOP_LAYOUT, $.ERROR, msg);
+                                                } else {
+                                                    alert(msg);
+                                                }
+                                            });
+                                        }
+                                    }).complete(function () {
+                                        requestingList[url] = false;
+                                    });
                                 }
+                            }, 60000);
+                        }
+                    } else {
+                        $.each(response['failedMsgs'], function (i, msg) {
+                            if (typeof $.addNotification != 'undefined') {
+                                $.addNotification($.TOP_LAYOUT, $.ERROR, msg);
                             } else {
-                                $.each(response['failedMsgs'], function (i, msg) {
-                                    if (typeof $.addNotification != 'undefined') {
-                                        $.addNotification($.TOP_LAYOUT, $.ERROR, msg);
-                                    } else {
-                                        alert(msg);
-                                    }
-                                });
+                                alert(msg);
                             }
-                        }).complete(function () {
-                            requestingList[url] = false;
                         });
                     }
-                }, 60000);
+                }).complete(function () {
+                    requestingList[url] = false;
+                });
             }
         });
     };

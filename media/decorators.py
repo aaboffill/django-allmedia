@@ -191,7 +191,7 @@ def use_youtube_api(model_attributes):
 
                         setattr(field.storage, 'request', getattr(self, 'request', None))
 
-            return func(self, args, kwargs)
+            return func(self, *args, **kwargs)
         return new_func
 
     return decorator

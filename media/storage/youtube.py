@@ -1,9 +1,9 @@
 # coding=utf-8
+from django.contrib.sites.models import Site
 from django.core.files.storage import Storage as DjangoStorage
 from django.core.files import File
 from django.core.files.uploadedfile import TemporaryUploadedFile, InMemoryUploadedFile
 from django.core.cache import cache
-from django.utils.translation import ugettext
 from django.conf import settings
 from allauth.socialaccount.models import SocialToken
 import httplib
@@ -166,11 +166,12 @@ class FileYoutubeStorage(DjangoStorage):
                 raise error_msg
 
             user = getattr(self, 'request').user if getattr(self, 'request', False) else getattr(self, 'user')
-            token = SocialToken.objects.filter(
+            token = SocialToken.objects.get(
                 app__provider='google',
+                app__sites=Site.objects.get_current() if getattr(self, 'request', False) else Site.objects.get(pk=getattr(self, 'site')),
                 account__provider='google',
                 account__user=user
-            ).get()
+            )
 
             credentials = GoogleCredentials(
                 access_token=token.token,

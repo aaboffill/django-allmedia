@@ -37,7 +37,7 @@ def clean_temp_files():
 
 
 @shared_task(name='media.follow_youtube_video_processing')
-def follow_youtube_video_processing(video_id, user_id):
+def follow_youtube_video_processing(video_id, user_id, site_id):
     from .models import YoutubeVideo
     from .storage.youtube import PROCESSING_STATUS
     from django.contrib.auth.models import User
@@ -49,9 +49,10 @@ def follow_youtube_video_processing(video_id, user_id):
 
         logger.info('Setting the user %s to the youtube file storage' % user)
         setattr(video.file.storage, 'user', user)
+        setattr(video.file.storage, 'site', site_id)
         if video.file.status == PROCESSING_STATUS:
             logger.info('Enqueue follow_youtube_video_processing task for the video %s in 60 seconds' % video)
-            follow_youtube_video_processing.delay(video_id, user_id, countdown=60)
+            follow_youtube_video_processing.delay(video_id, user_id, site_id, countdown=60)
         else:
             logger.info('Completed youtube processing for the video %s' % video)
 

@@ -6,7 +6,6 @@ from django.core.files.uploadedfile import TemporaryUploadedFile, InMemoryUpload
 from django.core.cache import cache
 from django.conf import settings
 from allauth.socialaccount.models import SocialToken
-from ..models import YoutubePostSettings
 
 import httplib
 import httplib2
@@ -217,11 +216,13 @@ class FileYoutubeStorage(DjangoStorage):
 
     def _save(self, name, content, title='', privacy=None, comment='', tags=''):
         youtube = self._get_authenticated_service()
+
         site = Site.objects.get_current()
+        from ..models import YoutubePostSettings
         post_settings = YoutubePostSettings.objects.get(sites=site)
         # predefined youtube site tags
-        post_tags = ", ".join([tag.name for tag in post_settings.post_tags.all()])
-        tags = "%s, %s" % (post_tags, tags) if tags else post_tags
+        post_tags = [tag.name for tag in post_settings.post_tags.all()]
+        tags = list(set(post_tags + tags))
         # post site url
         if post_settings.post_url:
             comment = "%s (http://%s)" % (comment, site.domain)
@@ -311,6 +312,7 @@ class FileYoutubeStorage(DjangoStorage):
         video_status = video_response["items"][0]["status"]
 
         site = post_settings = None
+        from ..models import YoutubePostSettings
 
         if title:
             video_snippet["title"] = title
@@ -326,8 +328,8 @@ class FileYoutubeStorage(DjangoStorage):
             site = Site.objects.get_current() if not site else site
             post_settings = YoutubePostSettings.objects.get(sites=site) if not post_settings else post_settings
             # predefined youtube site tags
-            post_tags = ", ".join([tag.name for tag in post_settings.post_tags.all()])
-            tags = "%s, %s" % (post_tags, tags)
+            post_tags = [tag.name for tag in post_settings.post_tags.all()]
+            tags = list(set(post_tags + tags))
 
             video_snippet["tags"] = tags
 

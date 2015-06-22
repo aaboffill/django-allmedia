@@ -274,3 +274,18 @@ class AjaxFileUploaded(models.Model):
 class YoutubeUploadProgress(models.Model):
     session_key = models.CharField(_('session key'), max_length=40, primary_key=True)
     progress_data = JSONField(_('progress data'), max_length=250)
+
+
+class YoutubePostSettings(models.Model):
+    post_url = models.BooleanField(_("post site url"), default=False)
+    post_tags = models.ManyToManyField(MediaTag, verbose_name=_('tags'), related_name="youtube_post_settings", blank=True)
+
+    sites = models.ManyToManyField(Site, verbose_name=_("sites"), related_name="youtube_post_settings", through="YoutubePostSettingsSite")
+
+    class Meta:
+        verbose_name_plural = "youtube post settings"
+
+
+class YoutubePostSettingsSite(models.Model):
+    youtube_post_settings = models.ForeignKey(YoutubePostSettings, verbose_name="youtube post settings")
+    site = models.ForeignKey(Site, unique=True)

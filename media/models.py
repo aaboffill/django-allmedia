@@ -285,6 +285,9 @@ class YoutubePostSettings(models.Model):
     class Meta:
         verbose_name_plural = "youtube post settings"
 
+    def __unicode__(self):
+        return ", ".join([site.name for site in self.sites.all()])
+
 
 class YoutubePostSettingsSite(models.Model):
     youtube_post_settings = models.ForeignKey(YoutubePostSettings, verbose_name="youtube post settings")

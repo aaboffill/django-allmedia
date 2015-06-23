@@ -10,6 +10,11 @@ Image thumbnail processing.
 
 Changelog
 =========
+1.0.10
+-----
+
+Implemented allauth authentication for Youtube API V3
+
 1.0.9
 -----
 
@@ -214,12 +219,6 @@ Usage
 
     -- Settings:
 
-        + ``YOUTUBE_CONF_FOLDER`` : Base path to the youtube configuration folder.
-
-        + ``YOUTUBE_CLIENT_SECRETS_FILE`` : Client secret json file name. This path store oauth authentication data.
-          This file must be saved inside the youtube configuration folder, the full path should be the concatenation of
-          ``YOUTUBE_CONF_FOLDER`` and ``YOUTUBE_CLIENT_SECRETS_FILE``.
-
         + ``YOUTUBE_DEFAULT_PRIVACY_STATUS`` : This setting define the default behavior of the youtube privacy status (optional).
           Possible values:
             ("public", "private", "unlisted") or (0, 1, 2) respectively
@@ -238,8 +237,6 @@ Usage
           It's important to specify a value if you wish to show the youtube upload progress to the user. If the specified value is not divisible by 256,
           an error will be raised.
 
-        + ``YOUTUBE_SPECIFIC_AUTH_PORT`` : If is necessary you can specify the port that you pretend use to the oauth2 authentication.
-
     -- Usage:
         + Replace the django ``FileField`` for the subclass ``YoutubeFileField`` to define the video file field in the model. For the ``YoutubeFileField``
         you can optionally specify the title, privacy, comment and tags for the youtube video.
@@ -256,19 +253,16 @@ Usage
                 tags=Media.tag_list
             )
 
-        + If you wish show the upload progress to the user, you need to include the ``show_youtube_upload_process`` decorator to the corresponding view,
-          and to include the ``show_upload_process.js`` in the template.
+        + If you wish show the upload progress to the user, you need to include the ``use_youtube_api`` decorator to the view methods where you will call
+          the YoutubeVideo save method, and to include the ``show_upload_process.js`` in the template.
 
-        The ``show_youtube_upload_process`` decorator have the following args:
+        You should use the ``use_youtube_api`` decorator in all view methods where you will use the youtube API methods, in order to set some data to the Youtube
+          storage.
 
-          - ``fields`` : Specify the youtube fields that you wish to show uploading progress for, if you don't specify any field, progress for all youtube
-            fields will be shown.
+        The ``use_youtube_api`` decorator have the following arg:
 
-          - ``model`` : Specify the model corresponding to the view, if don't specify it, the decorator will assume that the view is a subclass of ``CreateView``
-            or ``UpdateView`` and the model will be took from the view's model attribute.
+          - ``model_attributes`` : Specify the youtube fields inside the view class attributes, these files will be used to modify their Youtube storage instance.
 
-          - ``save_method`` : Specify the method where the model instance will be saved, if don't specify it, the decorator will assume that the view
-            is a subclass of ``CreateView`` or ``UpdateView`` and that the method is the ``form_valid`` method of the view.
 
         To ensure that the upload progress is shown successfully, you must to add the class ``youtube-files`` to the corresponding HTML form, also you need to specify
           the following form data:
@@ -279,11 +273,10 @@ Usage
 
 
         + When you upload a video to youtube, youtube begins processing the file, this process could take several minutes. During this
-         period, if you access the video for displaying, it won't be reproduced. In order to inform to the user of the progress of this process, you can use the
-         ``display_video.html`` to show the youtube player and to show the processing progress. You need to include ``display_video.js`` in the template.
+         period, if you access the video for displaying, it won't be reproduced. In order to inform to the user about the status of this process, you can use the
+         ``display_video.html`` to show the youtube player and to show the processing status. You need to include ``display_video.js`` in the template.
 
-         You can optionally overwrite the ``display_video.html`` template. By default, this template show the progress using an HTML progress bar,
-         but you can use other progress bar implementation like bootstrap progress bar if you respect the following principles:
+         You can optionally overwrite the ``display_video.html`` template:
 
             In the youtube embedded ``iframe``, you need to add a class named ``embed-youtube-video`` and to define some data attributes to guarantee a success
             progress display:
@@ -295,21 +288,10 @@ Usage
 
             - ``data-progress-container`` : Represents the HTML container of the progress HTML information.
 
-            - ``data-processing-percent`` : Specify the percent value container.
-            - ``data-processing-time-left`` : Specify the remaining time value container.
-            - ``data-processing-processed`` : Specify the processed value container.
-            - ``data-processing-total`` : Specify the total value container.
-            - ``data-video-status`` : Specify the status value container.
+            - ``data-processed`` : Set to 1 if the video was processed or 0 otherwise.
 
-            The last 5 data attributes, need to match the following format:
+            - ``data-while-processing-info`` : Specify the html component where will be shown the processing info y the video is still processed.
 
-              'html_selector:(func|attr)->name_of_func_or_attr' where:
-               ``func`` represent a method of the HTML component that will be called to set the value, as (.value(), text(), ...)
-               ``attr`` represent an attribute of the HTML component where will be setted the value, as (value="", max="", ...)
 
-              Example:
-              data-processing-percent="#youtube-processing-percent:func->text"
-              data-processing-time-left="#youtube-processing-time-left:func->text"
-              data-processing-processed="#youtube-processing-progress:attr->value"
-              data-processing-total="#youtube-processing-progress:attr->max"
-              data-video-status="#video-status:func->text"
+        + If you want to include some default information data to the youtube videos, for example, some default tags or add your url site in the video description.
+          You can modify the model ``YoutubePostSettings`` information in the django admin.

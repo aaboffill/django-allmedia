@@ -219,13 +219,16 @@ class FileYoutubeStorage(DjangoStorage):
 
         site = Site.objects.get_current()
         from ..models import YoutubePostSettings
-        post_settings = YoutubePostSettings.objects.get(sites=site)
-        # predefined youtube site tags
-        post_tags = [tag.name for tag in post_settings.post_tags.all()]
-        tags = list(set(post_tags + tags))
-        # post site url
-        if post_settings.post_url:
-            comment = "%s (http://%s)" % (comment, site.domain)
+        try:
+            post_settings = YoutubePostSettings.objects.get(sites=site)
+            # predefined youtube site tags
+            post_tags = [tag.name for tag in post_settings.post_tags.all()]
+            tags = list(set(post_tags + tags))
+            # post site url
+            if post_settings.post_url:
+                comment = "%s (http://%s)" % (comment, site.domain)
+        except YoutubePostSettings.DoesNotExist:
+            pass
 
         if not isinstance(privacy, bool):
             privacy = DEFAULT_PRIVACY_STATUS
@@ -318,18 +321,24 @@ class FileYoutubeStorage(DjangoStorage):
             video_snippet["title"] = title
         if comment:
             site = Site.objects.get_current()
-            post_settings = YoutubePostSettings.objects.get(sites=site)
-            # post site url
-            if post_settings.post_url:
-                comment = "%s (http://%s)" % (comment, site.domain)
+            try:
+                post_settings = YoutubePostSettings.objects.get(sites=site)
+                # post site url
+                if post_settings.post_url:
+                    comment = "%s (http://%s)" % (comment, site.domain)
+            except YoutubePostSettings.DoesNotExist:
+                pass
 
             video_snippet["description"] = comment
         if tags:
             site = Site.objects.get_current() if not site else site
-            post_settings = YoutubePostSettings.objects.get(sites=site) if not post_settings else post_settings
-            # predefined youtube site tags
-            post_tags = [tag.name for tag in post_settings.post_tags.all()]
-            tags = list(set(post_tags + tags))
+            try:
+                post_settings = YoutubePostSettings.objects.get(sites=site) if not post_settings else post_settings
+                # predefined youtube site tags
+                post_tags = [tag.name for tag in post_settings.post_tags.all()]
+                tags = list(set(post_tags + tags))
+            except YoutubePostSettings.DoesNotExist:
+                pass
 
             video_snippet["tags"] = tags
 

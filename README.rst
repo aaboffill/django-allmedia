@@ -10,7 +10,7 @@ Image thumbnail processing.
 
 Changelog
 =========
-1.0.11
+1.0.12
 -----
 
 Added functionality to include automatically an attribute to the youtube form container. This attribute will be used

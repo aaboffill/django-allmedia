@@ -10,6 +10,12 @@ Image thumbnail processing.
 
 Changelog
 =========
+1.0.11
+-----
+
+Added functionality to include automatically an attribute to the youtube form container. This attribute will be used
+to check if the form contain some file input video with value.
+
 1.0.10
 -----
 
@@ -270,6 +276,10 @@ Usage
           - ``data-youtube-process-url`` : Define the url that will be requested to retrieve the progress information.
 
           - ``data-youtube-process-parent`` : Specify the HTML container where will be append the youtube processing information.
+
+          - ``data-have-youtube-video`` : This attribute will be added automatically with value ``false``, you have to set to ``true`` via javascript when you make
+          the submit, and the form contain some file input video with value. While this attribute value is false, the functionality to show the upload process does not
+          will be executed.
 
 
         + When you upload a video to youtube, youtube begins processing the file, this process could take several minutes. During this

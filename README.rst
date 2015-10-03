@@ -10,6 +10,11 @@ Image thumbnail processing.
 
 Changelog
 =========
+1.0.13
+-----
+
+Fix media decorator.
+
 1.0.12
 -----
 

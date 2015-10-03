@@ -1,9 +1,9 @@
 # coding=utf-8
 import os
 from django.core.exceptions import ImproperlyConfigured
-from django.forms import ValidationError
-from functools import wraps
 from django.utils.decorators import available_attrs
+from django.utils.translation import ugettext as _
+from functools import wraps
 from .models import AjaxFileUploaded
 from .signals import pre_ajax_file_save
 
@@ -81,7 +81,7 @@ def ajax_file_upload(form_file_field_name="file", model_file_field_name=None, co
             def clean(self):
                 cleaned_data = normal_clean_method(self)
                 if not cleaned_data.get('temp_file_id', None) and not cleaned_data.get(form_file_field_name, None):
-                    raise ValidationError(message="No file provided", code="no_file")
+                    self._errors[form_file_field_name] = self.error_class([_(u"This field is required.")])
                 return cleaned_data
 
             setattr(cls, 'clean', clean)

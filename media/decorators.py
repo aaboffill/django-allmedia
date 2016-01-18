@@ -8,7 +8,7 @@ from .models import AjaxFileUploaded
 from .signals import pre_ajax_file_save
 
 
-def ajax_file_upload(form_file_field_name="file", model_file_field_name=None, content_type="all"):
+def ajax_file_upload(form_file_field_name="file", model_file_field_name=None, impl_model_save=True, content_type="all"):
 
     def decorator(cls):
         from django import forms
@@ -24,12 +24,15 @@ def ajax_file_upload(form_file_field_name="file", model_file_field_name=None, co
 
         def model_save(self, force_insert=False, force_update=False, using=None, update_fields=None):
             # finds if self has a temp_file attribute
-            if getattr(self, "temp_file", None):
+            if impl_model_save and getattr(self, "temp_file", None):
                 temp_file = getattr(self, "temp_file")
                 # connect with pre_ajax_file_save signal
                 pre_ajax_file_save.send(original_model, instance=self)
-                # create the new field field instance
-                getattr(self, model_file_field_name if model_file_field_name else form_file_field_name).save(
+                # create the new file field instance
+                file_field = getattr(self, model_file_field_name if model_file_field_name else form_file_field_name)
+                if callable(file_field):
+                    file_field = file_field()
+                file_field.save(
                     os.path.basename(temp_file.file.path),
                     temp_file.file.file,
                     False

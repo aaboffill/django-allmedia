@@ -10,6 +10,11 @@ Image thumbnail processing.
 
 Changelog
 =========
+1.0.14
+-----
+
+Added the param impl_model_save=True to the decorator.
+
 1.0.13
 -----
 

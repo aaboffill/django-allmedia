@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: django-allmedia\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2015-05-12 11:29-0500\n"
+"POT-Creation-Date: 2016-02-22 09:20-0600\n"
 "PO-Revision-Date: 2014-09-25 21:02-0500\n"
 "Last-Translator: Susel Ruiz <suselrd@gmail.com>\n"
 "Language-Team: SpanishLanguage: es\n"
@@ -17,108 +17,127 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#: models.py:19 models.py:149
+#: decorators.py:87
+msgid "This field is required."
+msgstr "Este campo es obligatorio."
+
+#: models.py:20 models.py:222
 msgid "name"
 msgstr "nombre"
 
-#: models.py:20 models.py:67 models.py:159
+#: models.py:21 models.py:68 models.py:232
 msgid "site"
 msgstr "sitio"
 
-#: models.py:51 models.py:144
+#: models.py:52 models.py:217
 msgid "content type"
 msgstr "tipo de contenido"
 
-#: models.py:53 models.py:146
+#: models.py:54 models.py:219
 msgid "object ID"
 msgstr "id de objeto"
 
-#: models.py:56
+#: models.py:57
 msgid "creator"
 msgstr "creador"
 
-#: models.py:57 models.py:150
+#: models.py:58 models.py:223
 msgid "caption"
 msgstr "descripción"
 
-#: models.py:58
+#: models.py:59
 msgid "album"
 msgstr "álbum"
 
-#: models.py:60 models.py:153
+#: models.py:61 models.py:226
 msgid "private"
 msgstr "privado"
 
-#: models.py:62
+#: models.py:63 models.py:281
 msgid "tags"
 msgstr "etiquetas"
 
-#: models.py:64 models.py:156
+#: models.py:65 models.py:229
 msgid "created"
 msgstr "fecha de creación"
 
-#: models.py:65 models.py:157
+#: models.py:66 models.py:230
 msgid "modified"
 msgstr "fecha de modificación"
 
-#: models.py:110 models.py:118 models.py:138
+#: models.py:125 models.py:150 models.py:208
 msgid "file"
 msgstr "fichero"
 
-#: models.py:125
+#: models.py:174
 msgid "youtube file"
 msgstr "fichero youtube"
 
-#: models.py:151
+#: models.py:224
 msgid "location"
 msgstr "localización"
 
-#: models.py:152
+#: models.py:225
 msgid "owner"
 msgstr "propietario"
 
-#: models.py:154
+#: models.py:227
 msgid "cover"
 msgstr "portada de álbum"
 
-#: models.py:197
+#: models.py:270
 msgid "ajax file"
 msgstr "fichero ajax"
 
-#: models.py:198
+#: models.py:271
 msgid "date"
 msgstr "fecha"
 
+#: models.py:275
+msgid "session key"
+msgstr "clave de sessión"
+
+#: models.py:276
+msgid "progress data"
+msgstr "información de progreso"
+
+#: models.py:280
+msgid "post site url"
+msgstr "url del sitio para publicar"
+
+#: models.py:283
+msgid "sites"
+msgstr "sitios"
+
 #: validators.py:20
-#, python-format
-msgid "Please keep file size under %s. Current file size %s."
+msgid "Please keep file size under %(max_size)s. Current file size %(size)s."
 msgstr ""
-"Por favor, mantenga el tamaño del fichero por debajo de %s. Actualmente el "
-"tamaño del fichero es %s."
+"Por favor, mantenga el tamaño del fichero por debajo de %(max_size)s. Actualmente el "
+"tamaño del fichero es %(size)s."
 
-#: validators.py:22
-#, python-format
-msgid "File type %s is not supported."
-msgstr "El tipo de fichero %s no está soportado."
+#: validators.py:25
+msgid "File type %(mime)s is not supported."
+msgstr "El tipo de fichero %(mime)s no está soportado."
 
-#: views.py:38
+#: views.py:39
 msgid "A problem has occurred while trying to save the uploaded file."
 msgstr ""
 "Ha ocurrido un problema mientras se trataba de salvar el fichero subido."
 
-#: views.py:58
+#: views.py:56
 #, python-format
 msgid "The video specified with id:%s does not exist."
 msgstr "El video especificado con id:%s no existe."
 
-#: fields/files.py:39 storage/youtube.py:334
-msgid "Seconds"
-msgstr "Segundos"
+#: templates/media/youtube/display_video.html:8
+msgid "The video is being processed by youtube"
+msgstr "El video ha comenzado a ser procesado por youtube."
 
-#: storage/youtube.py:345
-msgid "Minutes"
-msgstr "Minutos"
+#~ msgid "Seconds"
+#~ msgstr "Segundos"
 
-#: storage/youtube.py:357
-msgid "Unknown time"
-msgstr "Tiempo desconocido"
+#~ msgid "Minutes"
+#~ msgstr "Minutos"
+
+#~ msgid "Unknown time"
+#~ msgstr "Tiempo desconocido"

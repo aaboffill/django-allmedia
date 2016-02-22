@@ -10,6 +10,11 @@ Image thumbnail processing.
 
 Changelog
 =========
+1.0.15
+-----
+
+Messages compiled.
+
 1.0.14
 -----
 

@@ -53,7 +53,7 @@ def generate_thumbnail(path, size, method):
         ).save(thumbnail_path(path, size, method), MEDIA_IMAGE_FORMAT, quality=MEDIA_IMAGE_QUALITY)
 
 
-def convert_filename(value):
+def process_filename(value):
     """
     Convert Filename. # from django-filebrowser
     """
@@ -65,12 +65,6 @@ def convert_filename(value):
             v = re.sub(r'[^\w\s-]', '', v).strip()
             normalized.append(v)
 
-        if len(normalized) > 1:
-            value = '.'.join(normalized)
-        else:
-            value = normalized[0]
+        value = '.'.join(normalized) if len(normalized) > 1 else normalized[0]
 
-    if MEDIA_CONVERT_FILENAME:
-        value = value.replace(" ", "_").lower()
-
-    return value
+    return value.replace(" ", "_").lower() if MEDIA_CONVERT_FILENAME else value

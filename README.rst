@@ -10,6 +10,11 @@ Image thumbnail processing.
 
 Changelog
 =========
+1.0.16
+-----
+
+Fix filename processing.
+
 1.0.15
 -----
 

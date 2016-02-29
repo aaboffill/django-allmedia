@@ -13,7 +13,6 @@ from .fields.files import YoutubeFileField, JSONField
 from .storage.youtube import PROCESSING_STATUS
 from .settings import MEDIA_LOCATIONS
 from .signals import pre_ajax_file_save
-from .utils import convert_filename
 
 
 class MediaTag(models.Model):
@@ -91,11 +90,12 @@ class Media(models.Model):
         return templates.get(model, templates.get('default'))
 
     def upload_to(self, filename):
+        from .utils import process_filename
         return self.location_template(self.media_type) % {
             "site": settings.SITE_ID,
             "model": '%s_%s' % (self.content_object._meta.app_label, self.content_object._meta.object_name.lower()),
             "pk": self.content_object.pk,
-            "filename": convert_filename(filename)
+            "filename": process_filename(filename)
         }
 
     @property
@@ -261,10 +261,11 @@ pre_ajax_file_save.connect(set_content_after_album_content, sender=Attachment, d
 class AjaxFileUploaded(models.Model):
 
     def upload_to(self, filename):
+        from .utils import process_filename
         return 'site-%s/temp/ajax_files/%s/%s' % (
             settings.SITE_ID,
             '%s_%s' % (self._meta.app_label, self._meta.object_name.lower()),
-            filename
+            process_filename(filename)
         )
 
     file = models.FileField(verbose_name=_('ajax file'), max_length=255, upload_to=upload_to)

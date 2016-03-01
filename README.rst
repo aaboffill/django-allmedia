@@ -10,6 +10,11 @@ Image thumbnail processing.
 
 Changelog
 =========
+1.0.17
+-----
+
+Redefine upload_to methods in (Media and AjaxFileUploaded) models...
+
 1.0.16
 -----
 

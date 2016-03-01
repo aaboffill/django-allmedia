@@ -92,9 +92,10 @@ class Media(models.Model):
     def upload_to(self, filename):
         from .utils import process_filename
         return self.location_template(self.media_type) % {
-            "site": settings.SITE_ID,
-            "model": '%s_%s' % (self.content_object._meta.app_label, self.content_object._meta.object_name.lower()),
-            "pk": self.content_object.pk,
+            "site": Site.objects.get_current().name,
+            "app_label": self.content_object._meta.app_label,
+            "model": self.content_object._meta.object_name.lower(),
+            "unicode": self.content_object,
             "filename": process_filename(filename)
         }
 
@@ -262,9 +263,8 @@ class AjaxFileUploaded(models.Model):
 
     def upload_to(self, filename):
         from .utils import process_filename
-        return 'site-%s/temp/ajax_files/%s/%s' % (
-            settings.SITE_ID,
-            '%s_%s' % (self._meta.app_label, self._meta.object_name.lower()),
+        return '%s/media/temp_ajax_files/%s' % (
+            Site.objects.get_current().name,
             process_filename(filename)
         )
 

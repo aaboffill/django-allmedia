@@ -4,16 +4,16 @@ from django.conf import settings
 
 MEDIA_LOCATIONS = getattr(settings, 'MEDIA_LOCATIONS', {
     "image": {
-        "default": "site-%(site)s/photos/%(model)s/%(pk)s/%(filename)s"
+        "default": "%(site)s/%(app_label)s/%(model)s/%(unicode)s/images/%(filename)s"
     },
     "video": {
-        "default": "site-%(site)s/videos/%(model)s/%(pk)s/%(filename)s"
+        "default": "%(site)s/%(app_label)s/%(model)s/%(unicode)s/videos/%(filename)s"
     },
     "youtube": {
-        "default": "site-%(site)s/youtube/%(model)s/%(pk)s/%(filename)s"
+        "default": "%(site)s/%(app_label)s/%(model)s/%(unicode)s/youtube/%(filename)s"
     },
     "all": {
-        "default": "site-%(site)s/attachments/%(model)s/%(pk)s/%(filename)s"
+        "default": "%(site)s/%(app_label)s/%(model)s/%(unicode)s/attachments/%(filename)s"
     }
 })
 

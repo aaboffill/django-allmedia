@@ -10,6 +10,11 @@ Image thumbnail processing.
 
 Changelog
 =========
+1.0.18
+-----
+
+Fix upload_to methods in Media model...
+
 1.0.17
 -----
 

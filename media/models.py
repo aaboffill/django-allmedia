@@ -95,7 +95,7 @@ class Media(models.Model):
             "site": Site.objects.get_current().name,
             "app_label": self.content_object._meta.app_label,
             "model": self.content_object._meta.object_name.lower(),
-            "unicode": process_filename(self.content_object),
+            "unicode": process_filename(unicode(self.content_object)),
             "filename": process_filename(filename)
         }
 

@@ -2,8 +2,9 @@
 import json
 from django import forms
 from django.forms.util import ErrorList
-from django.utils.datastructures import MultiValueDictKeyError
+from django.utils.translation import ugettext_lazy as _
 from . import settings
+from .fields.tags import ModelMultiTagSelectChoiceField
 from .validators import FileFieldValidator
 from .decorators import ajax_file_upload
 from .models import MediaAlbum, Image, Video, MediaTag, Attachment, AjaxFileUploaded, YoutubeVideo
@@ -22,12 +23,13 @@ class MediaForm(forms.ModelForm):
     """
     Form to add a media object
     """
-    default_tags = forms.CharField(required=False, widget=forms.HiddenInput())
+    tags = ModelMultiTagSelectChoiceField(
+        register_choice=True, queryset=MediaTag.on_site.all(), required=False, help_text=_(u"Enter tag's name.")
+    )
 
     class Meta:
         fields = ('caption', 'private', 'file', 'tags', 'creator')
         widgets = {
-            'tags': forms.TextInput(),
             'creator': forms.HiddenInput(),
         }
 
@@ -35,34 +37,7 @@ class MediaForm(forms.ModelForm):
                  label_suffix=None, empty_permitted=False, instance=None):
         super(MediaForm, self).__init__(data, files, auto_id, prefix, initial, error_class, label_suffix,
                                         empty_permitted, instance)
-        if instance is not None:
-            self.fields['default_tags'].initial = json.dumps([{'id': obj['id'], 'text': obj['name']}
-                                                              for obj in instance.tags.values('id', 'name')])
         self.fields['file'].widget.template_with_initial = '%(input)s'
-
-    def full_clean(self):
-        """
-        For bound forms, convert tags data to list (if not list yet)
-        """
-        if self.is_bound:
-            field_name = self.add_prefix('tags')
-            try:
-                data = self.data[field_name]
-                if not isinstance(data, list) and data:
-                    data = data.split(',')
-                    self.data[field_name] = [self._get_or_create_tag(tag) for tag in data]
-            except MultiValueDictKeyError:
-                pass
-        return super(MediaForm, self).full_clean()
-
-    def _get_or_create_tag(self, tag):
-        """
-        Returns id of an existent or new-created tag
-        """
-        try:
-            return int(tag)
-        except ValueError as e:
-            return MediaTag.on_site.get_or_create(name=tag)[0].pk
 
 
 class ObjectMediaForm(MediaForm):

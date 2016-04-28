@@ -10,6 +10,11 @@ Image thumbnail processing.
 
 Changelog
 =========
+1.0.20
+-----
+
+Add form field ``ModelMultiTagSelectChoiceField`` to select the field ``tags`` into ``MediaForm``.
+
 1.0.19
 -----
 
